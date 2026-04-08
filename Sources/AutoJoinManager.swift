@@ -32,12 +32,25 @@ final class AutoJoinManager: ObservableObject {
         }
 
         let timer = Timer.scheduledTimer(withTimeInterval: msUntil, repeats: false) { [weak self] _ in
+            self?.timers.removeValue(forKey: meeting.id)
+            self?.scheduledIds.remove(meeting.id)
+
+            // If the meeting is already over, skip silently
+            guard meeting.endDate > Date() else { return }
+
+            // If the timer fired more than 2 minutes late (e.g. Mac was asleep),
+            // show a floating alert instead of auto-joining without the user knowing
+            let expectedFireDate = meeting.startDate.addingTimeInterval(-offsetSeconds)
+            let lateBy = Date().timeIntervalSince(expectedFireDate)
+            if lateBy > 120 {
+                FloatingAlertManager.shared.present(meeting: meeting)
+                return
+            }
+
             NSSound(named: "Funk")?.play()
             NSWorkspace.shared.open(url)
             JoinTracker.shared.markJoined(meeting.id)
             NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
-            self?.timers.removeValue(forKey: meeting.id)
-            self?.scheduledIds.remove(meeting.id)
         }
         timers[meeting.id] = timer
         scheduledIds.insert(meeting.id)
