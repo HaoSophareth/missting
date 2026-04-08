@@ -16,7 +16,7 @@ If you want to try it, email **haosophareth070@gmail.com** with the subject **"M
 2. Run this in Terminal:
 
 ```bash
-xattr -cr ~/Downloads/Missting.app && mv ~/Downloads/Missting.app /Applications/
+rm -rf /Applications/Missting.app && xattr -cr ~/Downloads/Missting.app && mv ~/Downloads/Missting.app /Applications/
 ```
 
 3. Open **Missting** from `/Applications` — the 🌻 appears in your menu bar
