@@ -47,6 +47,7 @@ struct FloatingAlertView: View {
                         Button("Join now") {
                             if isScheduled { autoJoin.cancel(meeting.id) }
                             JoinTracker.shared.markJoined(meeting.id)
+                            NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
                             joinedLocally = true
                             onJoin()
                         }
