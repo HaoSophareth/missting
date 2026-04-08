@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /Users/phareth/Applications/Missting/build.sh)",
+      "Bash(swift build:*)",
+      "Bash(./build.sh)",
+      "Read(//Users/phareth/Desktop/**)",
+      "Read(//Users/phareth/Downloads/**)",
+      "Bash(ls ~/Downloads/alarm*.png ~/Downloads/*alarm*.png ~/Downloads/*clock*.png ~/Downloads/*misst*.png)",
+      "Bash(ls -lt ~/Downloads/*.png)",
+      "Bash(bash build.sh)",
+      "Bash(pkill -x Missting)",
+      "Bash(open /Users/phareth/Applications/Missting/Missting.app)",
+      "Bash(open Missting.app)",
+      "Bash(defaults delete:*)"
+    ]
+  }
+}
