@@ -4,10 +4,16 @@ A lightweight macOS menu bar app that connects to your Google Calendar and makes
 
 See what's coming up, auto-join at the right time, and get notified before it's too late — all from your menu bar.
 
+## Beta Access
+
+Missting is currently in private beta. Google requires me to manually whitelist each user while the app is in testing mode (up to 100 people).
+
+If you want to try it, email **haosophareth070@gmail.com** with the subject **"Missting beta"** and I'll add your Google account. Once you're whitelisted, follow the steps below.
+
 ## Installation
 
-1. Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases)
-2. Run this in your terminal to bypass Gatekeeper:
+1. Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases/latest)
+2. Run this in Terminal:
 
 ```bash
 xattr -cr ~/Downloads/Missting.app && mv ~/Downloads/Missting.app /Applications/
