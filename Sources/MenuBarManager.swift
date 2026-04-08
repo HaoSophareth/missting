@@ -86,7 +86,7 @@ final class MenuBarManager: NSObject {
 
         // 1. In-progress meeting
         if meetings.contains(where: { $0.isInProgress }) {
-            button.title = " · in progress"
+            button.title = " in progress"
             return
         }
 
