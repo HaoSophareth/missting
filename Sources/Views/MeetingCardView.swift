@@ -123,14 +123,22 @@ struct MeetingCardView: View {
     // MARK: - Helpers
 
     private var cardBackground: Color {
-        if meeting.isMissed    { return Color(white: 0.07) }
-        if meeting.isInProgress { return Color(red: 0.17, green: 0.1, blue: 0.1) }
+        if meeting.isMissed     { return Color(white: 0.07) }
+        if meeting.isInProgress {
+            return hasJoined
+                ? Color(white: 0.1)
+                : Color(red: 0.17, green: 0.1, blue: 0.1)
+        }
         return Color(white: 0.1)
     }
 
     private var cardBorder: Color {
-        if meeting.isMissed    { return Color(white: 0.1) }
-        if meeting.isInProgress { return Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.25) }
+        if meeting.isMissed     { return Color(white: 0.1) }
+        if meeting.isInProgress {
+            return hasJoined
+                ? Color(white: 0.14)
+                : Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.25)
+        }
         return Color(white: 0.14)
     }
 
@@ -143,11 +151,11 @@ struct MeetingCardView: View {
         } else if meeting.isInProgress {
             HStack(spacing: 4) {
                 Circle()
-                    .fill(Color(red: 1.0, green: 0.35, blue: 0.35))
+                    .fill(hasJoined ? Color(white: 0.45) : Color(red: 1.0, green: 0.35, blue: 0.35))
                     .frame(width: 5, height: 5)
                 Text("In progress · \(meeting.minsElapsed)m in · \(meeting.minsRemaining)m left")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(Color(red: 1.0, green: 0.45, blue: 0.45))
+                    .foregroundColor(hasJoined ? Color(white: 0.45) : Color(red: 1.0, green: 0.45, blue: 0.45))
             }
         } else if isScheduled {
             Text("Auto-joining in \(formatMins(max(minsUntilJoin, 0)))")
