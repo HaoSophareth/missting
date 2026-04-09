@@ -97,7 +97,7 @@ struct FloatingAlertView: View {
                             .buttonStyle(FloatSecondaryStyle())
                     }
                     if isScheduled {
-                        Button("Cancel") { autoJoin.cancel(meeting.id) }
+                        Button("Cancel") { autoJoin.cancelManually(meeting.id) }
                             .buttonStyle(FloatSecondaryStyle())
                     }
                 }

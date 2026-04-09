@@ -12,6 +12,12 @@ final class AutoJoinManager: ObservableObject {
 
     @Published private(set) var scheduledIds: Set<String> = []
 
+    /// Meeting IDs the user has explicitly cancelled auto-join for — persisted so
+    /// Minerva classes don't re-schedule themselves after a refresh.
+    private(set) var manuallyCancelled: Set<String> = {
+        Set(UserDefaults.standard.stringArray(forKey: "manuallyCancelledAutoJoin") ?? [])
+    }()
+
     private struct ScheduledJoin {
         let meeting: Meeting
         let url: URL
@@ -33,6 +39,9 @@ final class AutoJoinManager: ObservableObject {
     func schedule(_ meeting: Meeting) {
         guard let url = meeting.joinURL else { return }
         cancel(meeting.id)
+        // User explicitly scheduling — clear any previous manual cancel
+        manuallyCancelled.remove(meeting.id)
+        UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
 
         NotificationManager.shared.cancelNotifications(for: meeting.id)
         FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
@@ -52,14 +61,36 @@ final class AutoJoinManager: ObservableObject {
         ensurePolling()
     }
 
+    /// Stops the timer without marking as manually cancelled (used internally).
     func cancel(_ id: String) {
         scheduled.removeValue(forKey: id)
         scheduledIds.remove(id)
         if scheduled.isEmpty { stopPolling() }
     }
 
+    /// Stops the timer AND remembers the user explicitly cancelled —
+    /// prevents Minerva classes from re-scheduling on the next fetch.
+    func cancelManually(_ id: String) {
+        cancel(id)
+        manuallyCancelled.insert(id)
+        UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
+    }
+
     func isScheduled(_ id: String) -> Bool {
         scheduledIds.contains(id)
+    }
+
+    func isManuallyCancelled(_ id: String) -> Bool {
+        manuallyCancelled.contains(id)
+    }
+
+    /// Called after each fetch — removes cancelled entries for meetings that no longer exist.
+    func cleanupCancelled(activeMeetingIds: Set<String>) {
+        let before = manuallyCancelled.count
+        manuallyCancelled = manuallyCancelled.filter { activeMeetingIds.contains($0) }
+        if manuallyCancelled.count != before {
+            UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
+        }
     }
 
     // MARK: - Polling

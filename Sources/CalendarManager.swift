@@ -146,6 +146,7 @@ final class CalendarManager: ObservableObject {
                     meetings: self.meetings,
                     offsets: SettingsManager.shared.enabledOffsets
                 )
+                autoScheduleMinervaClasses(result.meetings)
             } catch {
                 print("Calendar fetch error:", error)
             }
@@ -331,6 +332,24 @@ final class CalendarManager: ObservableObject {
               let idRange = Range(match.range(at: 1), in: text) else { return nil }
         let classId = String(text[idRange])
         return URL(string: "https://class.minerva.edu/classes/\(classId)")
+    }
+
+    private func autoScheduleMinervaClasses(_ meetings: [Meeting]) {
+        let autoJoin = AutoJoinManager.shared
+        let activeIds = Set(meetings.map(\.id))
+        autoJoin.cleanupCancelled(activeMeetingIds: activeIds)
+
+        for meeting in meetings {
+            guard meeting.joinURL?.host?.contains("class.minerva.edu") == true,
+                  meeting.endDate > Date(),
+                  !meeting.isInProgress,
+                  !meeting.isPending,
+                  !meeting.isDeclined,
+                  !JoinTracker.shared.hasJoined(meeting.id),
+                  !autoJoin.isScheduled(meeting.id),
+                  !autoJoin.isManuallyCancelled(meeting.id) else { continue }
+            autoJoin.schedule(meeting)
+        }
     }
 
     enum CalError: Error { case http(Int) }

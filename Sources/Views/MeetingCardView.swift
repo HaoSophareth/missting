@@ -86,7 +86,7 @@ struct MeetingCardView: View {
                                 .foregroundColor(Color(red: 0.96, green: 0.65, blue: 0.14))
                                 .padding(.horizontal, 8).padding(.vertical, 4)
                                 .overlay(Capsule().stroke(Color(red: 0.96, green: 0.65, blue: 0.14), lineWidth: 0.5))
-                            Button("Cancel") { autoJoin.cancel(meeting.id) }
+                            Button("Cancel") { autoJoin.cancelManually(meeting.id) }
                                 .buttonStyle(SecondaryButtonStyle())
                         }
                         if hasLink {
