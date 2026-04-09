@@ -4,31 +4,65 @@ A lightweight macOS menu bar app that connects to your Google Calendar and makes
 
 See what's coming up, auto-join at the right time, and get notified before it's too late — all from your menu bar.
 
+---
+
 ## Beta Access
 
 Missting is currently in private beta. Google requires me to manually whitelist each user while the app is in testing mode (up to 100 people).
 
 If you want to try it, email **haosophareth070@gmail.com** with the subject **"Missting beta"** and I'll add your Google account. Once you're whitelisted, follow the steps below.
 
+---
+
 ## Installation
 
-1. Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases/latest)
-2. Double-click the zip to unzip it — you should see `Missting.app` in your Downloads folder
-3. Run this in Terminal:
+> Requires macOS 13 or later.
+
+### Step 1 — Download
+
+Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases/latest).
+
+> **Already have an old version?** That's fine — the install command below removes it automatically. You do not need to uninstall anything first.
+
+### Step 2 — Install with one command
+
+Open **Terminal** (press `⌘ Space`, type `Terminal`, press Enter) and paste this:
 
 ```bash
-rm -rf /Applications/Missting.app && xattr -cr ~/Downloads/Missting.app && mv ~/Downloads/Missting.app /Applications/
+MZIP=$(ls -t ~/Downloads/Missting*.zip 2>/dev/null | head -1) && [ -n "$MZIP" ] && unzip -o "$MZIP" -d /tmp/_MisstingInstall && rm -rf /Applications/Missting.app && xattr -cr /tmp/_MisstingInstall/Missting.app && mv /tmp/_MisstingInstall/Missting.app /Applications/ && rm -rf /tmp/_MisstingInstall && echo "✅ Done! Open Missting from /Applications." || echo "❌ No Missting.zip found in ~/Downloads — make sure the file downloaded there."
 ```
 
-4. Open **Missting** from `/Applications` — the 🌻 appears in your menu bar
+This command handles everything automatically:
+- Finds the zip even if it downloaded as `Missting (1).zip`, `Missting (2).zip`, etc.
+- Unzips it for you — no need to double-click first
+- Removes any old version of the app before installing
+- Clears macOS quarantine so the app opens without security warnings
 
-> Requires macOS 13 or later
+### Step 3 — Open the app
 
-**Having trouble?** If the command says `No such file or directory`, your zip may have downloaded as `Missting (1).zip`. Rename it first by running:
+Launch **Missting** from `/Applications` — the 🌻 sunflower appears in your menu bar.
+
+---
+
+## Troubleshooting
+
+**"❌ No Missting.zip found"**
+The zip wasn't saved to `~/Downloads`. Check your browser's download folder and move the file there, or re-download it.
+
+**"Missting.app can't be opened because Apple cannot check it for malicious software"**
+Run this in Terminal:
 ```bash
-mv ~/Downloads/Missting\ \(1\).zip ~/Downloads/Missting.zip
+xattr -cr /Applications/Missting.app
 ```
-Then double-click to unzip and re-run the install command above.
+Then try opening it again.
+
+**The app opens but shows a blank/empty menu**
+Sign in first: click 🌻 → **Sign in with Google** → grant calendar access.
+
+**Nothing changed after updating**
+Quit Missting first (🌻 → Quit), then re-run the install command above, then reopen it.
+
+---
 
 ## Features
 
@@ -48,6 +82,8 @@ Then double-click to unzip and re-run the install command above.
 
 **Wake from sleep alerts** — If your laptop was asleep during a meeting, Missting alerts you immediately on wake
 
+---
+
 ## Setup
 
 ### Connect Google Calendar
@@ -62,6 +98,8 @@ To get auto-detected join links for Minerva classes:
 2. Open **Google Calendar** → click **+** next to "Other calendars" → **From URL** → paste the link
 3. Refresh Missting — the Minerva status in Settings will turn green
 
+---
+
 ## Usage
 
 | Action | How |
@@ -75,6 +113,8 @@ To get auto-detected join links for Minerva classes:
 | Change notification timing | Settings → Notify me before meetings |
 | Change auto-join offset | Settings → Auto-join before start |
 
+---
+
 ## Building from Source
 
 Requires Swift and Xcode Command Line Tools.
@@ -85,6 +125,8 @@ cd missting
 bash build.sh
 cp -r Missting.app /Applications/
 ```
+
+---
 
 ## Privacy
 
