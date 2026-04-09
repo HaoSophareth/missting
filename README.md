@@ -13,15 +13,22 @@ If you want to try it, email **haosophareth070@gmail.com** with the subject **"M
 ## Installation
 
 1. Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases/latest)
-2. Run this in Terminal:
+2. Double-click the zip to unzip it — you should see `Missting.app` in your Downloads folder
+3. Run this in Terminal:
 
 ```bash
 rm -rf /Applications/Missting.app && xattr -cr ~/Downloads/Missting.app && mv ~/Downloads/Missting.app /Applications/
 ```
 
-3. Open **Missting** from `/Applications` — the 🌻 appears in your menu bar
+4. Open **Missting** from `/Applications` — the 🌻 appears in your menu bar
 
 > Requires macOS 13 or later
+
+**Having trouble?** If the command says `No such file or directory`, your zip may have downloaded as `Missting (1).zip`. Rename it first by running:
+```bash
+mv ~/Downloads/Missting\ \(1\).zip ~/Downloads/Missting.zip
+```
+Then double-click to unzip and re-run the install command above.
 
 ## Features
 
