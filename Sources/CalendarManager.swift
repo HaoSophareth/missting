@@ -340,7 +340,9 @@ final class CalendarManager: ObservableObject {
         autoJoin.cleanupCancelled(activeMeetingIds: activeIds)
 
         for meeting in meetings {
-            guard meeting.joinURL?.host?.contains("class.minerva.edu") == true,
+            let isMinerva = meeting.joinURL?.host?.contains("class.minerva.edu") == true
+            let isPersisted = autoJoin.persistedScheduledIds.contains(meeting.id)
+            guard (isMinerva || isPersisted),
                   meeting.endDate > Date(),
                   !meeting.isInProgress,
                   !meeting.isPending,
@@ -348,7 +350,7 @@ final class CalendarManager: ObservableObject {
                   !JoinTracker.shared.hasJoined(meeting.id),
                   !autoJoin.isScheduled(meeting.id),
                   !autoJoin.isManuallyCancelled(meeting.id) else { continue }
-            autoJoin.schedule(meeting)
+            autoJoin.scheduleInternal(meeting)
         }
     }
 

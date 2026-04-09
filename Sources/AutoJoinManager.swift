@@ -18,6 +18,11 @@ final class AutoJoinManager: ObservableObject {
         Set(UserDefaults.standard.stringArray(forKey: "manuallyCancelledAutoJoin") ?? [])
     }()
 
+    /// Meeting IDs the user has manually scheduled — persisted so they survive restarts.
+    private(set) var persistedScheduledIds: Set<String> = {
+        Set(UserDefaults.standard.stringArray(forKey: "persistedScheduledIds") ?? [])
+    }()
+
     private struct ScheduledJoin {
         let meeting: Meeting
         let url: URL
@@ -36,10 +41,18 @@ final class AutoJoinManager: ObservableObject {
         }
     }
 
+    /// Called when user manually clicks Auto-join — persists across restarts.
     func schedule(_ meeting: Meeting) {
+        persistedScheduledIds.insert(meeting.id)
+        UserDefaults.standard.set(Array(persistedScheduledIds), forKey: "persistedScheduledIds")
+        scheduleInternal(meeting)
+    }
+
+    /// Called internally (auto-schedule on fetch) — does not persist.
+    func scheduleInternal(_ meeting: Meeting) {
         guard let url = meeting.joinURL else { return }
         cancel(meeting.id)
-        // User explicitly scheduling — clear any previous manual cancel
+        // Clear any previous manual cancel when scheduling
         manuallyCancelled.remove(meeting.id)
         UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
 
@@ -73,7 +86,9 @@ final class AutoJoinManager: ObservableObject {
     func cancelManually(_ id: String) {
         cancel(id)
         manuallyCancelled.insert(id)
+        persistedScheduledIds.remove(id)
         UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
+        UserDefaults.standard.set(Array(persistedScheduledIds), forKey: "persistedScheduledIds")
     }
 
     func isScheduled(_ id: String) -> Bool {
@@ -84,12 +99,17 @@ final class AutoJoinManager: ObservableObject {
         manuallyCancelled.contains(id)
     }
 
-    /// Called after each fetch — removes cancelled entries for meetings that no longer exist.
+    /// Called after each fetch — prunes stale entries for meetings that no longer exist.
     func cleanupCancelled(activeMeetingIds: Set<String>) {
-        let before = manuallyCancelled.count
+        let prevCancelled = manuallyCancelled.count
+        let prevPersisted = persistedScheduledIds.count
         manuallyCancelled = manuallyCancelled.filter { activeMeetingIds.contains($0) }
-        if manuallyCancelled.count != before {
+        persistedScheduledIds = persistedScheduledIds.filter { activeMeetingIds.contains($0) }
+        if manuallyCancelled.count != prevCancelled {
             UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
+        }
+        if persistedScheduledIds.count != prevPersisted {
+            UserDefaults.standard.set(Array(persistedScheduledIds), forKey: "persistedScheduledIds")
         }
     }
 
