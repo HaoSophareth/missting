@@ -126,7 +126,7 @@ struct MeetingCardView: View {
         if meeting.isMissed     { return Color(white: 0.07) }
         if meeting.isInProgress {
             return hasJoined
-                ? Color(white: 0.1)
+                ? Color(red: 0.07, green: 0.15, blue: 0.09)
                 : Color(red: 0.17, green: 0.1, blue: 0.1)
         }
         return Color(white: 0.1)
@@ -136,7 +136,7 @@ struct MeetingCardView: View {
         if meeting.isMissed     { return Color(white: 0.1) }
         if meeting.isInProgress {
             return hasJoined
-                ? Color(white: 0.14)
+                ? Color(red: 0.2, green: 0.78, blue: 0.42).opacity(0.25)
                 : Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.25)
         }
         return Color(white: 0.14)
@@ -151,11 +151,11 @@ struct MeetingCardView: View {
         } else if meeting.isInProgress {
             HStack(spacing: 4) {
                 Circle()
-                    .fill(hasJoined ? Color(white: 0.45) : Color(red: 1.0, green: 0.35, blue: 0.35))
+                    .fill(hasJoined ? Color(red: 0.2, green: 0.78, blue: 0.42) : Color(red: 1.0, green: 0.35, blue: 0.35))
                     .frame(width: 5, height: 5)
                 Text("In progress · \(meeting.minsElapsed)m in · \(meeting.minsRemaining)m left")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(hasJoined ? Color(white: 0.45) : Color(red: 1.0, green: 0.45, blue: 0.45))
+                    .foregroundColor(hasJoined ? Color(red: 0.2, green: 0.78, blue: 0.42) : Color(red: 1.0, green: 0.45, blue: 0.45))
             }
         } else if isScheduled {
             Text("Auto-joining in \(formatMins(max(minsUntilJoin, 0)))")
@@ -265,9 +265,9 @@ struct JoinedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 11, weight: .medium))
-            .foregroundColor(Color(white: 0.4))
+            .foregroundColor(Color(red: 0.2, green: 0.78, blue: 0.42))
             .padding(.horizontal, 11).padding(.vertical, 4)
-            .background(Color(white: 0.13))
+            .background(Color(red: 0.2, green: 0.78, blue: 0.42).opacity(0.12))
             .clipShape(Capsule())
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
