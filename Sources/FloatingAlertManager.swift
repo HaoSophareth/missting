@@ -19,11 +19,13 @@ final class FloatingAlertManager {
 
     private init() {}
 
-    func present(meeting: Meeting) {
-        DispatchQueue.main.async { self._present(meeting: meeting) }
+    func present(meeting: Meeting, autoJoinReminderMode: Bool = false) {
+        DispatchQueue.main.async { self._present(meeting: meeting, autoJoinReminderMode: autoJoinReminderMode) }
     }
 
-    private func _present(meeting: Meeting) {
+    private func _present(meeting: Meeting, autoJoinReminderMode: Bool) {
+        // Don't interrupt if the user is already in an active call
+        if CallDetector.shared.isInCall { return }
         // Don't show a duplicate for the same meeting
         if entries.contains(where: { $0.meetingId == meeting.id }) { return }
 
@@ -34,10 +36,11 @@ final class FloatingAlertManager {
                 meeting: meeting,
                 onJoin: { [weak self] in
                     if let url = meeting.joinURL { NSWorkspace.shared.open(url) }
-                    JoinTracker.shared.markJoined(meeting.id)
+                    JoinTracker.shared.markJoined(meeting)
                     self?.dismiss(meetingId: meeting.id)
                 },
-                onDismiss: { [weak self] in self?.dismiss(meetingId: meeting.id) }
+                onDismiss: { [weak self] in self?.dismiss(meetingId: meeting.id) },
+                autoJoinReminderMode: autoJoinReminderMode
             )
             .environmentObject(AutoJoinManager.shared)
         )

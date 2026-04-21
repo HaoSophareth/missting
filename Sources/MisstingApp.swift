@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationManager.shared.requestAuthorization()
         MenuBarManager.shared.setup()
         CalendarManager.shared.startRefreshingIfSignedIn()
+        _ = CallDetector.shared
 
         // Show floating alert for in-progress meetings when laptop wakes from sleep
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -20,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { _ in
             NotificationManager.shared.alertInProgressMeetings(CalendarManager.shared.meetings)
             CalendarManager.shared.fetchMeetings()
+            AutoJoinManager.shared.checkInProgressMeetings()
         }
 
         // On first ever launch, show a centered welcome panel so it's

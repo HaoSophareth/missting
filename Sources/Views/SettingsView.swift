@@ -46,6 +46,35 @@ struct SettingsView: View {
 
             Divider().background(Color(white: 0.12))
 
+            // MARK: - All events
+            Button {
+                settings.showAllEvents.toggle()
+                CalendarManager.shared.fetchMeetings()
+            } label: {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Show all events")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                        Text("Include events without a join link")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(white: 0.4))
+                    }
+                    Spacer()
+                    Image(systemName: settings.showAllEvents ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 16))
+                        .foregroundColor(settings.showAllEvents
+                            ? Color(red: 0.31, green: 0.56, blue: 0.97)
+                            : Color(white: 0.25))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Divider().background(Color(white: 0.12))
+
             // MARK: - Calendars
             Text("Calendars")
                 .font(.system(size: 13, weight: .medium))

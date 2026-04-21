@@ -1,31 +1,35 @@
 import Foundation
 
-/// Persists which meeting IDs the user has joined (clicked Join now or auto-joined).
-/// Past meetings not in this set are shown as "Missed".
+/// Persists which meetings the user has joined (clicked Join now or auto-joined).
+/// Keyed on eventId + startDate so a rescheduled meeting always starts fresh.
 final class JoinTracker {
     static let shared = JoinTracker()
-    private let key = "joinedMeetingIds"
+    private let storageKey = "joinedMeetingIds"
 
     private init() { cleanup() }
 
-    func markJoined(_ id: String) {
+    func markJoined(_ meeting: Meeting) {
         var joined = all()
-        joined.insert(id)
-        UserDefaults.standard.set(Array(joined), forKey: key)
+        joined.insert(compoundKey(meeting))
+        UserDefaults.standard.set(Array(joined), forKey: storageKey)
     }
 
-    func hasJoined(_ id: String) -> Bool {
-        all().contains(id)
+    func hasJoined(_ meeting: Meeting) -> Bool {
+        all().contains(compoundKey(meeting))
+    }
+
+    private func compoundKey(_ meeting: Meeting) -> String {
+        "\(meeting.id)_\(Int(meeting.startDate.timeIntervalSince1970))"
     }
 
     private func all() -> Set<String> {
-        Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
+        Set(UserDefaults.standard.stringArray(forKey: storageKey) ?? [])
     }
 
     // Keep the list from growing forever — prune after 200 entries
     private func cleanup() {
-        var joined = UserDefaults.standard.stringArray(forKey: key) ?? []
+        var joined = UserDefaults.standard.stringArray(forKey: storageKey) ?? []
         if joined.count > 200 { joined = Array(joined.suffix(200)) }
-        UserDefaults.standard.set(joined, forKey: key)
+        UserDefaults.standard.set(joined, forKey: storageKey)
     }
 }

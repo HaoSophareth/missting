@@ -27,6 +27,7 @@ final class AutoJoinManager: ObservableObject {
         let meeting: Meeting
         let url: URL
         let joinDate: Date
+        var reminderShown: Bool = false
     }
     private var scheduled: [String: ScheduledJoin] = [:]
     private var pollTimer: Timer?
@@ -130,6 +131,19 @@ final class AutoJoinManager: ObservableObject {
 
     private func checkScheduled() {
         let now = Date()
+
+        // Show the floating alert ~1 minute before join fires (once per meeting).
+        // Only within 15–75s window so it never appears at the same moment auto-join fires.
+        for meetingId in scheduled.keys {
+            guard var join = scheduled[meetingId] else { continue }
+            let secs = join.joinDate.timeIntervalSinceNow
+            if !join.reminderShown && secs <= 75 && secs > 15 {
+                join.reminderShown = true
+                scheduled[meetingId] = join
+                FloatingAlertManager.shared.present(meeting: join.meeting, autoJoinReminderMode: true)
+            }
+        }
+
         let due = scheduled.filter { $0.value.joinDate <= now }
         for (meetingId, join) in due {
             scheduled.removeValue(forKey: meetingId)
@@ -143,18 +157,42 @@ final class AutoJoinManager: ObservableObject {
         if scheduled.isEmpty { stopPolling() }
     }
 
+    /// Scans for recently-started meetings the user hasn't joined and auto-joins them.
+    /// Only fires within the first 10 minutes of a meeting's start — after that, the
+    /// user has had a chance to join and chose not to, so we leave them alone.
+    func checkInProgressMeetings() {
+        guard !CallDetector.shared.isInCall else { return }
+        let recentWindow: TimeInterval = 30 * 60
+        for meeting in CalendarManager.shared.meetings {
+            guard meeting.isInProgress,
+                  Date().timeIntervalSince(meeting.startDate) <= recentWindow,
+                  let url = meeting.joinURL,
+                  !meeting.isPending,
+                  !meeting.isDeclined,
+                  !JoinTracker.shared.hasJoined(meeting),
+                  !isManuallyCancelled(meeting.id) else { continue }
+            FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
+            NSSound(named: "Funk")?.play()
+            NSWorkspace.shared.open(url)
+            JoinTracker.shared.markJoined(meeting)
+            NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
+        }
+    }
+
     private func fire(meeting: Meeting, url: URL, joinDate: Date) {
         let lateBy = Date().timeIntervalSince(joinDate)
 
-        // Fired more than 2 min late (Mac was asleep) — show alert, let user decide
         if lateBy > 120 {
-            FloatingAlertManager.shared.present(meeting: meeting)
-            return
+            // Woke up late — if the meeting is still going, join anyway.
+            // If already in another call, skip silently; checkInProgressMeetings
+            // will pick it up the moment that call ends.
+            guard meeting.endDate > Date(), !CallDetector.shared.isInCall else { return }
         }
 
+        FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
         NSSound(named: "Funk")?.play()
         NSWorkspace.shared.open(url)
-        JoinTracker.shared.markJoined(meeting.id)
+        JoinTracker.shared.markJoined(meeting)
         NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
     }
 }

@@ -31,6 +31,11 @@ final class SettingsManager: ObservableObject {
         }
     }
 
+    /// When true, events without a join link (e.g. focus blocks, reminders) are shown in the list.
+    @Published var showAllEvents: Bool {
+        didSet { UserDefaults.standard.set(showAllEvents, forKey: "showAllEvents") }
+    }
+
     private init() {
         let d = UserDefaults.standard
         if d.object(forKey: "settingsInitialized") == nil {
@@ -45,14 +50,15 @@ final class SettingsManager: ObservableObject {
             d.set(true, forKey: "alert15")
             d.set(true, forKey: "alert15Initialized")
         }
-        alert30        = d.bool(forKey: "alert30")
-        alert15        = d.bool(forKey: "alert15")
-        alert10        = d.bool(forKey: "alert10")
-        alert5         = d.bool(forKey: "alert5")
-        alertAtStart   = d.bool(forKey: "alertAtStart")
-        autoJoinOffset = d.object(forKey: "autoJoinOffset") != nil
-                         ? d.integer(forKey: "autoJoinOffset") : 0
+        alert30         = d.bool(forKey: "alert30")
+        alert15         = d.bool(forKey: "alert15")
+        alert10         = d.bool(forKey: "alert10")
+        alert5          = d.bool(forKey: "alert5")
+        alertAtStart    = d.bool(forKey: "alertAtStart")
+        autoJoinOffset  = d.object(forKey: "autoJoinOffset") != nil
+                          ? d.integer(forKey: "autoJoinOffset") : 0
         disabledCalendarIds = Set(d.stringArray(forKey: "disabledCalendarIds") ?? [])
+        showAllEvents   = d.bool(forKey: "showAllEvents")
     }
 
     var enabledOffsets: [Int] {

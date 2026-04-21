@@ -5,6 +5,7 @@ struct FloatingAlertView: View {
     let meeting: Meeting
     let onJoin: () -> Void
     let onDismiss: () -> Void
+    var autoJoinReminderMode: Bool = false
 
     @EnvironmentObject private var autoJoin: AutoJoinManager
     @State private var tick = 0
@@ -12,14 +13,14 @@ struct FloatingAlertView: View {
 
     private var isScheduled: Bool { autoJoin.isScheduled(meeting.id) }
     private var mins: Int { meeting.minsUntilStart }
-    private var hasJoined: Bool { joinedLocally || JoinTracker.shared.hasJoined(meeting.id) }
+    private var hasJoined: Bool { joinedLocally || JoinTracker.shared.hasJoined(meeting) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Status row
             HStack(spacing: 0) {
                 if isScheduled {
-                    Text("Auto-joining in ~\(max(mins, 0)) min")
+                    Text(autoJoinReminderMode ? "Auto-joining in about 1 minute" : "Auto-joining in ~\(max(mins, 0)) min")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(Color(red: 0.96, green: 0.65, blue: 0.14))
                 } else if meeting.isInProgress {
@@ -39,14 +40,14 @@ struct FloatingAlertView: View {
 
                 Spacer()
 
-                if meeting.joinURL != nil {
+                if meeting.joinURL != nil && !autoJoinReminderMode {
                     if meeting.isInProgress && hasJoined {
                         Button("Joined") { onJoin() }
                             .buttonStyle(FloatJoinedStyle())
                     } else {
                         Button("Join now") {
                             if isScheduled { autoJoin.cancel(meeting.id) }
-                            JoinTracker.shared.markJoined(meeting.id)
+                            JoinTracker.shared.markJoined(meeting)
                             NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
                             joinedLocally = true
                             onJoin()
@@ -85,7 +86,7 @@ struct FloatingAlertView: View {
                 if meeting.isInProgress {
                     if meeting.joinURL != nil && !hasJoined {
                         Button("Already in it") {
-                            JoinTracker.shared.markJoined(meeting.id)
+                            JoinTracker.shared.markJoined(meeting)
                             NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
                             onDismiss()
                         }

@@ -12,7 +12,7 @@ struct MeetingCardView: View {
     private var isScheduled: Bool { autoJoin.isScheduled(meeting.id) }
     private var mins: Int { meeting.minsUntilStart }
     private var hasLink: Bool { meeting.joinURL != nil }
-    private var hasJoined: Bool { joinedLocally || JoinTracker.shared.hasJoined(meeting.id) }
+    private var hasJoined: Bool { joinedLocally || JoinTracker.shared.hasJoined(meeting) }
     private var minsUntilJoin: Int {
         let offset = SettingsManager.shared.autoJoinOffset
         let joinDate = meeting.startDate.addingTimeInterval(-Double(offset) * 60)
@@ -63,18 +63,23 @@ struct MeetingCardView: View {
                                     .buttonStyle(JoinedButtonStyle())
                             } else {
                                 Button("Already in it") {
-                                    JoinTracker.shared.markJoined(meeting.id)
+                                    JoinTracker.shared.markJoined(meeting)
                                     joinedLocally = true
                                 }
                                 .buttonStyle(SecondaryButtonStyle())
                                 Button("Join now") {
-                                    JoinTracker.shared.markJoined(meeting.id)
+                                    JoinTracker.shared.markJoined(meeting)
                                     joinedLocally = true
                                     NSWorkspace.shared.open(meeting.joinURL!)
                                 }
                                 .buttonStyle(PrimaryButtonStyle())
                             }
                         }
+                    } else if hasJoined {
+                        Button("Joined") {
+                            if let url = meeting.joinURL { NSWorkspace.shared.open(url) }
+                        }
+                        .buttonStyle(JoinedButtonStyle())
                     } else {
                         if hasLink && !isScheduled {
                             Button("Auto-join") { autoJoin.schedule(meeting) }
@@ -92,7 +97,7 @@ struct MeetingCardView: View {
                         if hasLink {
                             Button("Join now") {
                                 if isScheduled { autoJoin.cancel(meeting.id) }
-                                JoinTracker.shared.markJoined(meeting.id)
+                                JoinTracker.shared.markJoined(meeting)
                                 joinedLocally = true
                                 NSWorkspace.shared.open(meeting.joinURL!)
                             }

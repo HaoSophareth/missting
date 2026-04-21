@@ -36,7 +36,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                       !meeting.isPending,
                       !meeting.isDeclined,
                       meeting.joinURL != nil,
-                      !JoinTracker.shared.hasJoined(meeting.id),
+                      !JoinTracker.shared.hasJoined(meeting),
                       !AutoJoinManager.shared.isScheduled(meeting.id) else { continue }
                 FloatingAlertManager.shared.present(meeting: meeting)
             }
@@ -47,11 +47,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         var seenNow = shown
 
         for meeting in meetings {
-            // Never notify for pending or declined invites
-            if meeting.isPending || meeting.isDeclined { continue }
+            // Never notify for pending, declined, or link-less events
+            if meeting.isPending || meeting.isDeclined || meeting.joinURL == nil { continue }
 
             // Skip if user already joined or auto-join is scheduled
-            if JoinTracker.shared.hasJoined(meeting.id) || AutoJoinManager.shared.isScheduled(meeting.id) { continue }
+            if JoinTracker.shared.hasJoined(meeting) || AutoJoinManager.shared.isScheduled(meeting.id) { continue }
 
             let mins = meeting.minsUntilStart
 
@@ -91,8 +91,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         content.title = meeting.title
         content.body  = offset == 0 ? "Starting now" : "Starting in \(offset) minute\(offset == 1 ? "" : "s")"
         content.sound = .default
-        content.categoryIdentifier = categoryId
         if let url = meeting.joinURL {
+            content.categoryIdentifier = categoryId   // includes "Join now" action
             content.userInfo = ["joinURL": url.absoluteString]
         }
 

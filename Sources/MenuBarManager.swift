@@ -84,9 +84,15 @@ final class MenuBarManager: NSObject {
         guard let button = statusItem?.button else { return }
         let now = Date()
 
-        // 1. In-progress meeting
-        if meetings.contains(where: { $0.isInProgress }) {
+        // 1. In-progress meeting tracked by Missting (only meetings with a join link)
+        if meetings.contains(where: { $0.isInProgress && $0.joinURL != nil }) {
             button.title = " in progress"
+            return
+        }
+
+        // 1b. External call detected via mic/camera (meeting not in Missting)
+        if CallDetector.shared.isInCall {
+            button.title = " in call"
             return
         }
 
@@ -97,7 +103,7 @@ final class MenuBarManager: NSObject {
                                      of: cal.date(byAdding: .day, value: 1, to: now)!)!
 
         if let next = meetings
-            .filter({ $0.startDate > now && ($0.startDate <= endOfToday || $0.startDate < sixAmTomorrow) })
+            .filter({ $0.joinURL != nil && $0.startDate > now && ($0.startDate <= endOfToday || $0.startDate < sixAmTomorrow) })
             .sorted(by: { $0.startDate < $1.startDate })
             .first {
             let mins = next.minsUntilStart

@@ -16,7 +16,7 @@ struct Meeting: Identifiable, Equatable {
 
     var minsUntilStart: Int { Int((startDate.timeIntervalSinceNow / 60).rounded()) }
     var isInProgress: Bool  { startDate <= Date() && endDate > Date() }
-    var isMissed: Bool      { endDate < Date() && !JoinTracker.shared.hasJoined(id) }
+    var isMissed: Bool      { joinURL != nil && endDate < Date() && !JoinTracker.shared.hasJoined(self) }
     var minsElapsed: Int    { Int((Date().timeIntervalSince(startDate) / 60).rounded()) }
     var minsRemaining: Int  { Int((endDate.timeIntervalSinceNow / 60).rounded()) }
 }
@@ -51,15 +51,20 @@ final class CalendarManager: ObservableObject {
 
     var isAccessGranted: Bool { auth.isSignedIn }
 
-    /// Accepted (+ tentative) meetings on the given day that have a join link.
+    /// Accepted (+ tentative) meetings on the given day. Includes link-less events when showAllEvents is on.
     func acceptedMeetings(daysFromToday: Int) -> [Meeting] {
-        let cal    = Calendar.current
-        let target = cal.date(byAdding: .day, value: daysFromToday, to: cal.startOfDay(for: Date()))!
+        let cal      = Calendar.current
+        let target   = cal.date(byAdding: .day, value: daysFromToday, to: cal.startOfDay(for: Date()))!
+        let showAll  = SettingsManager.shared.showAllEvents
+        let now      = Date()
         return meetings.filter {
             cal.isDate($0.startDate, inSameDayAs: target)
-            && $0.joinURL != nil
+            && (showAll || $0.joinURL != nil)
             && !$0.isPending
             && !$0.isDeclined
+            // Hide meetings that ended and were already joined — they're done.
+            // Ended meetings that weren't joined stay visible as "Missed".
+            && !($0.endDate < now && JoinTracker.shared.hasJoined($0))
         }
     }
 
@@ -192,11 +197,14 @@ final class CalendarManager: ObservableObject {
             allMeetings.append(selfCopy)
         }
 
-        // Check for Minerva before time-filtering — catches today's already-joined classes too
-        let hasMinerva = allMeetings.contains { $0.joinURL?.host?.contains("class.minerva.edu") == true }
+        // Check for Minerva: calendar present in list OR events found in window.
+        // Using calendar name so it shows Connected even when there are no classes today/tomorrow.
+        let hasMinervaCalendar = calendars.contains { $0.name.lowercased().contains("minerva") }
+        let hasMinervaEvents   = allMeetings.contains { $0.joinURL?.host?.contains("class.minerva.edu") == true }
+        let hasMinerva = hasMinervaCalendar || hasMinervaEvents
 
         let filtered = allMeetings
-            .filter { $0.joinURL != nil && $0.endDate > now }
+            .filter { $0.endDate > now }
             .sorted { $0.startDate < $1.startDate }
 
         return (filtered, hasMinerva)
@@ -347,7 +355,7 @@ final class CalendarManager: ObservableObject {
                   !meeting.isInProgress,
                   !meeting.isPending,
                   !meeting.isDeclined,
-                  !JoinTracker.shared.hasJoined(meeting.id),
+                  !JoinTracker.shared.hasJoined(meeting),
                   !autoJoin.isScheduled(meeting.id),
                   !autoJoin.isManuallyCancelled(meeting.id) else { continue }
             autoJoin.scheduleInternal(meeting)
