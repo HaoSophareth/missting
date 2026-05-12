@@ -6,32 +6,32 @@ import AppKit
 final class GoogleAuthManager: NSObject, ObservableObject {
     static let shared = GoogleAuthManager()
 
-    private let clientId     = "267510202208-v3f2f0fsouhptgh62hphus7t4hhppf0i.apps.googleusercontent.com"
-    // Reverse-DNS of the client ID — registered as redirect URI in Google Cloud Console
+    private let clientId      = "267510202208-v3f2f0fsouhptgh62hphus7t4hhppf0i.apps.googleusercontent.com"
     private let redirectScheme = "com.googleusercontent.apps.267510202208-v3f2f0fsouhptgh62hphus7t4hhppf0i"
-    // calendar.events allows both reading and writing (needed for RSVP)
-    private let scope = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly"
+    private let scope = "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly"
 
-    @Published var isSignedIn = false
-    @Published var userEmail: String?
+    @Published var connectedEmails: [String] = []
 
-    private var accessToken:  String?
-    private var refreshToken: String?
-    private var tokenExpiry:  Date?
+    var isSignedIn: Bool  { !connectedEmails.isEmpty }
+    var userEmail: String? { connectedEmails.first }
 
-    private let kAccess  = "missting.accessToken"
-    private let kRefresh = "missting.refreshToken"
-    private let kExpiry  = "missting.tokenExpiry"
-    private let kEmail   = "missting.userEmail"
+    private var accessTokens:  [String: String] = [:]
+    private var refreshTokens: [String: String] = [:]
+    private var tokenExpiries: [String: Date]   = [:]
+
+    private let kEmails = "missting.connectedEmails"
 
     override init() {
         super.init()
-        loadKeychain()
+        migrateIfNeeded()
+        loadAll()
     }
 
     // MARK: - Public
 
-    func signIn() async throws {
+    /// Signs in a new Google account and adds it to the connected accounts list.
+    @discardableResult
+    func signIn() async throws -> String {
         let (verifier, challenge) = pkce()
 
         var comps = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")!
@@ -60,45 +60,89 @@ final class GoogleAuthManager: NSObject, ObservableObject {
                 cont.resume(returning: code)
             }
             session.presentationContextProvider = self
-            session.prefersEphemeralWebBrowserSession = false
+            session.prefersEphemeralWebBrowserSession = true
             session.start()
         }
 
-        try await exchange(code: code, verifier: verifier)
-        await fetchUserEmail()
+        let tok = try await postToken([
+            "client_id":     clientId,
+            "code":          code,
+            "code_verifier": verifier,
+            "grant_type":    "authorization_code",
+            "redirect_uri":  "\(redirectScheme):/oauth2callback",
+        ])
+
+        let email = try await fetchUserEmail(token: tok.access_token)
+        let expiry = Date().addingTimeInterval(TimeInterval(tok.expires_in ?? 3600))
+
+        await MainActor.run {
+            accessTokens[email]  = tok.access_token
+            if let rt = tok.refresh_token { refreshTokens[email] = rt }
+            tokenExpiries[email] = expiry
+            if !connectedEmails.contains(email) { connectedEmails.append(email) }
+            save(for: email)
+        }
+        return email
+    }
+
+    func getValidToken(for email: String) async throws -> String {
+        if let t = accessTokens[email],
+           let exp = tokenExpiries[email],
+           exp > Date().addingTimeInterval(60) { return t }
+
+        guard let rt = refreshTokens[email] else { throw AuthError.notSignedIn }
+        let tok    = try await postToken(["client_id": clientId, "refresh_token": rt, "grant_type": "refresh_token"])
+        let expiry = Date().addingTimeInterval(TimeInterval(tok.expires_in ?? 3600))
+        await MainActor.run {
+            accessTokens[email]  = tok.access_token
+            tokenExpiries[email] = expiry
+            save(for: email)
+        }
+        return tok.access_token
     }
 
     func getValidToken() async throws -> String {
-        if let t = accessToken, let exp = tokenExpiry, exp > Date().addingTimeInterval(60) {
-            return t
-        }
-        if let rt = refreshToken {
-            try await refresh(rt)
-            if let t = accessToken { return t }
-        }
-        throw AuthError.notSignedIn
+        guard let email = connectedEmails.first else { throw AuthError.notSignedIn }
+        return try await getValidToken(for: email)
+    }
+
+    func signOut(email: String) {
+        accessTokens.removeValue(forKey: email)
+        refreshTokens.removeValue(forKey: email)
+        tokenExpiries.removeValue(forKey: email)
+        let d = UserDefaults.standard
+        d.removeObject(forKey: tKey("access", email))
+        d.removeObject(forKey: tKey("refresh", email))
+        d.removeObject(forKey: tKey("expiry", email))
+        connectedEmails.removeAll { $0 == email }
+        d.set(connectedEmails, forKey: kEmails)
     }
 
     func signOut() {
-        accessToken = nil; refreshToken = nil; tokenExpiry = nil; userEmail = nil
-        isSignedIn  = false
-        [kAccess, kRefresh, kExpiry, kEmail].forEach(deleteKeychain)
+        connectedEmails.forEach { signOut(email: $0) }
     }
 
-    private func fetchUserEmail() async {
-        guard let token = accessToken else { return }
+    // MARK: - Private
+
+    private func fetchUserEmail(token: String) async throws -> String {
         var req = URLRequest(url: URL(string: "https://www.googleapis.com/oauth2/v2/userinfo")!)
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        guard let (data, _) = try? await URLSession.shared.data(for: req),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let email = json["email"] as? String else { return }
-        await MainActor.run {
-            userEmail = email
-            UserDefaults.standard.set(email, forKey: kEmail)
-        }
+        let (data, _) = try await URLSession.shared.data(for: req)
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let email = json["email"] as? String else { throw AuthError.noEmail }
+        return email
     }
 
-    // MARK: - PKCE
+    private func postToken(_ body: [String: String]) async throws -> TokenResponse {
+        var req = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
+        req.httpMethod = "POST"
+        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+            .map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)" }
+            .joined(separator: "&").data(using: .utf8)
+        let (data, _) = try await URLSession.shared.data(for: req)
+        return try JSONDecoder().decode(TokenResponse.self, from: data)
+    }
 
     private func pkce() -> (verifier: String, challenge: String) {
         var buf = [UInt8](repeating: 0, count: 64)
@@ -108,88 +152,52 @@ final class GoogleAuthManager: NSObject, ObservableObject {
         return (verifier, challenge)
     }
 
-    // MARK: - Token exchange
+    private func tKey(_ type: String, _ email: String) -> String { "missting.\(type).\(email)" }
 
-    private func exchange(code: String, verifier: String) async throws {
-        let body: [String: String] = [
-            "client_id":     clientId,
-            "code":          code,
-            "code_verifier": verifier,
-            "grant_type":    "authorization_code",
-            "redirect_uri":  "\(redirectScheme):/oauth2callback",
-        ]
-        try await postToken(body)
-    }
-
-    private func refresh(_ rt: String) async throws {
-        let body: [String: String] = [
-            "client_id":     clientId,
-            "refresh_token": rt,
-            "grant_type":    "refresh_token",
-        ]
-        try await postToken(body)
-    }
-
-    private func postToken(_ body: [String: String]) async throws {
-        var req = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
-        req.httpMethod = "POST"
-        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        req.httpBody = body
-            .map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)" }
-            .joined(separator: "&")
-            .data(using: .utf8)
-
-        let (data, _) = try await URLSession.shared.data(for: req)
-        let tok = try JSONDecoder().decode(TokenResponse.self, from: data)
-
-        await MainActor.run {
-            accessToken  = tok.access_token
-            tokenExpiry  = Date().addingTimeInterval(TimeInterval(tok.expires_in ?? 3600))
-            if let rt = tok.refresh_token { refreshToken = rt }
-            isSignedIn   = true
-            UserDefaults.standard.set(tok.access_token, forKey: kAccess)
-            if let rt = tok.refresh_token { UserDefaults.standard.set(rt, forKey: kRefresh) }
-            if let exp = tokenExpiry { UserDefaults.standard.set(exp.timeIntervalSince1970, forKey: kExpiry) }
-        }
-    }
-
-    // MARK: - UserDefaults storage (no password prompts)
-
-    private func loadKeychain() {
+    private func save(for email: String) {
         let d = UserDefaults.standard
-        accessToken  = d.string(forKey: kAccess)
-        refreshToken = d.string(forKey: kRefresh)
-        if let v = d.object(forKey: kExpiry) as? Double {
-            tokenExpiry = Date(timeIntervalSince1970: v)
+        if let t = accessTokens[email]  { d.set(t, forKey: tKey("access", email)) }
+        if let t = refreshTokens[email] { d.set(t, forKey: tKey("refresh", email)) }
+        if let e = tokenExpiries[email] { d.set(e.timeIntervalSince1970, forKey: tKey("expiry", email)) }
+        d.set(connectedEmails, forKey: kEmails)
+    }
+
+    private func loadAll() {
+        let d = UserDefaults.standard
+        let emails = d.stringArray(forKey: kEmails) ?? []
+        for email in emails {
+            accessTokens[email]  = d.string(forKey: tKey("access", email))
+            refreshTokens[email] = d.string(forKey: tKey("refresh", email))
+            if let v = d.object(forKey: tKey("expiry", email)) as? Double {
+                tokenExpiries[email] = Date(timeIntervalSince1970: v)
+            }
         }
-        isSignedIn = refreshToken != nil
-        userEmail  = d.string(forKey: kEmail)
+        connectedEmails = emails.filter { refreshTokens[$0] != nil }
     }
 
-    private func saveKeychain(_ key: String, _ value: String) {
-        UserDefaults.standard.set(value, forKey: key)
+    // Migrates the old single-account storage to per-email keys.
+    private func migrateIfNeeded() {
+        let d = UserDefaults.standard
+        guard let email = d.string(forKey: "missting.userEmail"),
+              d.string(forKey: "missting.refreshToken") != nil else { return }
+        if let v = d.string(forKey: "missting.accessToken")  { d.set(v, forKey: tKey("access", email)) }
+        if let v = d.string(forKey: "missting.refreshToken") { d.set(v, forKey: tKey("refresh", email)) }
+        if let v = d.object(forKey: "missting.tokenExpiry") as? Double { d.set(v, forKey: tKey("expiry", email)) }
+        var emails = d.stringArray(forKey: kEmails) ?? []
+        if !emails.contains(email) { emails.insert(email, at: 0) }
+        d.set(emails, forKey: kEmails)
+        ["missting.accessToken", "missting.refreshToken", "missting.tokenExpiry", "missting.userEmail"]
+            .forEach { d.removeObject(forKey: $0) }
     }
 
-    private func deleteKeychain(_ key: String) {
-        UserDefaults.standard.removeObject(forKey: key)
-    }
-
-    // MARK: - Errors
-
-    enum AuthError: Error {
-        case noCode, notSignedIn
-    }
+    enum AuthError: Error { case noCode, notSignedIn, noEmail }
 }
-
-// MARK: - ASWebAuthenticationPresentationContextProviding
 
 extension GoogleAuthManager: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         NSApp.windows.first(where: { $0.isVisible }) ?? NSApp.windows.first ?? NSWindow()
     }
 }
-
-// MARK: - Helpers
 
 private struct TokenResponse: Codable {
     let access_token: String

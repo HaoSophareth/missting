@@ -12,31 +12,32 @@ final class MenuBarManager: NSObject {
     private var sizeObservation: NSKeyValueObservation?
     private var pendingSize: CGSize = .zero
     private var resizeTimer: Timer?
-    private var statusRefreshTimer: Timer?
+    private var iconRefreshTimer: Timer?
     private var latestMeetings: [Meeting] = []
+
+    private var colorIcon: NSImage?
+    private var grayIcon: NSImage?
 
     private override init() {}
 
     func setup() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        colorIcon = loadMenuBarIcon(gray: false)
+        grayIcon  = loadMenuBarIcon(gray: true)
+
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = item.button {
-            if let icon = loadMenuBarIcon() {
-                button.image = icon
-            } else {
-                button.image = NSImage(systemSymbolName: "alarm",
-                                       accessibilityDescription: "Missting")
-            }
-            // Handle both left and right clicks
+            button.image = grayIcon ?? NSImage(systemSymbolName: "alarm", accessibilityDescription: "Missting")
+            button.imageScaling = .scaleProportionallyDown
+            button.title = ""
             button.action = #selector(handleClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.target = self
         }
         statusItem = item
 
-        // Refresh the status text every 30 seconds so countdowns stay accurate
-        statusRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        iconRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             guard let self else { return }
-            self.applyStatusText(self.latestMeetings)
+            self.applyStatusIcon(self.latestMeetings)
         }
 
         let pop = NSPopover()
@@ -73,81 +74,35 @@ final class MenuBarManager: NSObject {
         }
     }
 
-    // MARK: - Status text
+    // MARK: - Icon state
 
     func updateStatusText(_ meetings: [Meeting]) {
         latestMeetings = meetings
-        applyStatusText(meetings)
+        applyStatusIcon(meetings)
     }
 
-    private func applyStatusText(_ meetings: [Meeting]) {
+    private func applyStatusIcon(_ meetings: [Meeting]) {
         guard let button = statusItem?.button else { return }
         let now = Date()
-
-        // 1. In-progress meeting tracked by Missting (only meetings with a join link)
-        if meetings.contains(where: { $0.isInProgress && $0.joinURL != nil }) {
-            button.title = " in progress"
-            return
-        }
-
-        // 1b. External call detected via mic/camera (meeting not in Missting)
-        if CallDetector.shared.isInCall {
-            button.title = " in call"
-            return
-        }
-
-        // 2. Next upcoming meeting — only show if it's today or early morning (before 6am tomorrow)
         let cal = Calendar.current
-        let endOfToday = cal.date(bySettingHour: 23, minute: 59, second: 59, of: now)!
-        let sixAmTomorrow = cal.date(bySettingHour: 6, minute: 0, second: 0,
-                                     of: cal.date(byAdding: .day, value: 1, to: now)!)!
 
-        if let next = meetings
-            .filter({ $0.joinURL != nil && $0.startDate > now && ($0.startDate <= endOfToday || $0.startDate < sixAmTomorrow) })
-            .sorted(by: { $0.startDate < $1.startDate })
-            .first {
-            let mins = next.minsUntilStart
-            let timeStr: String
-            if mins <= 1 {
-                timeStr = "now"
-            } else if mins < 60 {
-                timeStr = "\(mins)m"
-            } else {
-                let h = mins / 60
-                let rem = mins % 60
-                timeStr = rem == 0 ? "\(h)h" : "\(h)h \(rem)m"
+        let hasMeeting: Bool
+        if meetings.contains(where: { $0.isInProgress && $0.joinURL != nil }) {
+            hasMeeting = true
+        } else if CallDetector.shared.isInCall {
+            hasMeeting = true
+        } else {
+            let endOfToday    = cal.date(bySettingHour: 23, minute: 59, second: 59, of: now)!
+            let sixAmTomorrow = cal.date(bySettingHour: 6, minute: 0, second: 0,
+                                         of: cal.date(byAdding: .day, value: 1, to: now)!)!
+            hasMeeting = meetings.contains {
+                $0.joinURL != nil && $0.startDate > now &&
+                ($0.startDate <= endOfToday || $0.startDate < sixAmTomorrow)
             }
-            button.title = " in \(timeStr)"
-            return
         }
 
-        // 3. No meetings today — show a randomised "done for the day" message
-        button.title = " \(donForTheDayMessage())"
-    }
-
-    private func donForTheDayMessage() -> String {
-        let messages = [
-            "You're free!",
-            "That's a wrap!",
-            "Go touch grass",
-            "All clear today",
-            "No more meetings",
-            "You survived today",
-            "Clear skies ahead",
-            "Rest mode: on",
-            "Nothing. Enjoy it.",
-            "You earned this",
-        ]
-        // Seed by day so it stays consistent within a day but changes daily
-        let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: Date()) ?? 1
-        return messages[dayOfYear % messages.count]
-    }
-
-    /// Extracts the short identifier from a meeting title.
-    /// "CS114 Session 22 - ..." → "CS114"
-    /// "180DC – Rim + Phareth" → "180DC"
-    private func shortTitle(_ title: String) -> String {
-        title.components(separatedBy: .whitespaces).first ?? title
+        button.image = hasMeeting ? colorIcon : grayIcon
+        button.title = ""
     }
 
     // MARK: - Popover
@@ -233,24 +188,15 @@ final class MenuBarManager: NSObject {
         }
     }
 
-    private func loadMenuBarIcon() -> NSImage? {
-        guard let source = AppResources.sunflower() else { return nil }
+    private func loadMenuBarIcon(gray: Bool) -> NSImage? {
+        guard let source = gray ? AppResources.sunflowerGray() : AppResources.sunflower() else { return nil }
+        let iconSize: CGFloat = 18
+        let size = NSSize(width: iconSize, height: iconSize)
 
-        let iconSize: CGFloat = 22
-        let padding: CGFloat = 2
-        let total = iconSize + padding * 2
-        let totalSize = NSSize(width: total, height: total)
-
-        let result = NSImage(size: totalSize)
+        let result = NSImage(size: size)
         result.lockFocus()
-
-        if let ctx = NSGraphicsContext.current?.cgContext {
-            // Subtle dark shadow so the flower pops without glowing
-            ctx.setShadow(offset: CGSize(width: 0, height: -0.5), blur: 2,
-                          color: NSColor.black.withAlphaComponent(0.55).cgColor)
-        }
-
-        source.draw(in: NSRect(x: padding, y: padding, width: iconSize, height: iconSize))
+        NSGraphicsContext.current?.imageInterpolation = .high
+        source.draw(in: NSRect(origin: .zero, size: size))
         result.unlockFocus()
         result.isTemplate = false
         return result

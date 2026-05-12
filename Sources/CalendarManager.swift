@@ -43,6 +43,9 @@ final class CalendarManager: ObservableObject {
     private static let linkPattern = try! NSRegularExpression(
         pattern: #"https://(meet\.google\.com|[\w.\-]*zoom\.us/j|teams\.microsoft\.com)/\S+"#
     )
+    private static let anyURLPattern = try! NSRegularExpression(
+        pattern: #"https://[^\s\"]+"#
+    )
     // Matches Minerva Academic calendar event URLs, captures the class ID at the end
     // e.g. https://forum.minerva.edu/app/courses/3797/sections/13018/classes/101243
     private static let minervaForumPattern = try! NSRegularExpression(
@@ -238,11 +241,8 @@ final class CalendarManager: ObservableObject {
 
     private func fetchEvents(token: String, calendarId: String, now: Date) async throws -> [Meeting] {
         let cal = Calendar.current
-        // Start: beginning of today (catches today's missed meetings)
         let windowStart = cal.startOfDay(for: now)
-        // End: end of tomorrow (full two-day window)
-        let dayAfterTomorrow = cal.date(byAdding: .day, value: 2, to: cal.startOfDay(for: now))!
-        let windowEnd = dayAfterTomorrow
+        let windowEnd = cal.date(byAdding: .day, value: 8, to: windowStart)!
 
         let encodedId = calendarId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarId
         var comps = URLComponents(string: "https://www.googleapis.com/calendar/v3/calendars/\(encodedId)/events")!
@@ -251,7 +251,7 @@ final class CalendarManager: ObservableObject {
             .init(name: "timeMax",      value: Self.iso.string(from: windowEnd)),
             .init(name: "singleEvents", value: "true"),
             .init(name: "orderBy",      value: "startTime"),
-            .init(name: "maxResults",   value: "20"),
+            .init(name: "maxResults",   value: "50"),
         ]
 
         var req = URLRequest(url: comps.url!)
@@ -304,20 +304,32 @@ final class CalendarManager: ObservableObject {
     }
 
     private func extractLink(_ e: GCalEvent, accountEmail: String?) -> URL? {
-        let text = [e.location, e.description].compactMap { $0 }.joined(separator: " ")
+        let fullText = [e.location, e.description].compactMap { $0 }.joined(separator: " ")
 
-        // Minerva Academic calendar: extract class ID from forum URL and build class meeting link
-        // forum.minerva.edu/.../classes/101243  →  class.minerva.edu/classes/101243
-        if let minervaURL = Self.extractMinervaClassURL(from: text) {
+        // Minerva Academic calendar
+        if let minervaURL = Self.extractMinervaClassURL(from: fullText) {
             return minervaURL
         }
 
         let rawURL: URL? = {
+            // 1. Explicit Google Meet link attached to the event
             if let s = e.hangoutLink { return URL(string: s) }
-            let range = NSRange(text.startIndex..., in: text)
-            guard let match = Self.linkPattern.firstMatch(in: text, range: range),
-                  let sr    = Range(match.range, in: text) else { return nil }
-            return URL(string: String(text[sr]))
+
+            // 2. Any https URL in the location field (covers Preply, custom platforms, etc.)
+            if let location = e.location, !location.isEmpty {
+                let range = NSRange(location.startIndex..., in: location)
+                if let match = Self.anyURLPattern.firstMatch(in: location, range: range),
+                   let sr = Range(match.range, in: location) {
+                    return URL(string: String(location[sr]))
+                }
+            }
+
+            // 3. Known video-call patterns anywhere in description
+            let desc = e.description ?? ""
+            let range = NSRange(desc.startIndex..., in: desc)
+            guard let match = Self.linkPattern.firstMatch(in: desc, range: range),
+                  let sr = Range(match.range, in: desc) else { return nil }
+            return URL(string: String(desc[sr]))
         }()
 
         guard let url = rawURL else { return nil }

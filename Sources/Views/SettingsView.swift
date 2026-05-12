@@ -9,40 +9,28 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
 
             // MARK: - Notifications
-            Text("Notify me before meetings")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-            HStack(spacing: 8) {
-                alertChip("30m", isOn: $settings.alert30)
-                alertChip("15m", isOn: $settings.alert15)
-                alertChip("10m", isOn: $settings.alert10)
-                alertChip("5m",  isOn: $settings.alert5)
+            HStack {
+                Text("Notify before meetings")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white)
+                Spacer()
+                MinuteField(value: $settings.notificationOffset)
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 16)
+            .padding(.vertical, 12)
 
             Divider().background(Color(white: 0.12))
 
             // MARK: - Auto-join timing
-            Text("Auto-join before start")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-            HStack(spacing: 8) {
-                autoJoinChip("0m", value: 0)
-                autoJoinChip("1m", value: 1)
-                autoJoinChip("2m", value: 2)
-                autoJoinChip("5m", value: 5)
+            HStack {
+                Text("Auto-join before start")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white)
+                Spacer()
+                MinuteField(value: $settings.autoJoinOffset)
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 16)
+            .padding(.vertical, 12)
 
             Divider().background(Color(white: 0.12))
 
@@ -52,14 +40,9 @@ struct SettingsView: View {
                 CalendarManager.shared.fetchMeetings()
             } label: {
                 HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Show all events")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white)
-                        Text("Include events without a join link")
-                            .font(.system(size: 11))
-                            .foregroundColor(Color(white: 0.4))
-                    }
+                    Text("Show all events")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white)
                     Spacer()
                     Image(systemName: settings.showAllEvents ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 16))
@@ -172,6 +155,9 @@ struct SettingsView: View {
             .padding(.bottom, 20)
         }
         .frame(width: 300)
+        .simultaneousGesture(TapGesture().onEnded {
+            NSApp.keyWindow?.makeFirstResponder(nil)
+        })
     }
 
     // MARK: - Helpers
@@ -214,36 +200,66 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Auto-join chip
+}
 
-    private func autoJoinChip(_ label: String, value: Int) -> some View {
-        let selected = settings.autoJoinOffset == value
-        return Button { settings.autoJoinOffset = value } label: {
-            Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(selected ? .white : Color(white: 0.5))
-                .frame(width: 52, height: 36)
-                .background(selected
-                    ? Color(red: 0.31, green: 0.56, blue: 0.97)
-                    : Color(white: 0.15))
-                .clipShape(Capsule())
+private struct MinuteField: View {
+    @Binding var value: Int
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Button { value = max(0, value - 1); text = "\(value)" } label: {
+                Image(systemName: "minus")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(Color(white: 0.6))
+                    .frame(width: 22, height: 22)
+                    .background(Color(white: 0.18))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 2) {
+                TextField("", text: $text)
+                    .textFieldStyle(.plain)
+                    .multilineTextAlignment(.trailing)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(width: 28)
+                    .focused($focused)
+                    .onAppear { text = "\(value)" }
+                    .onSubmit {
+                        if let v = Int(text), v >= 0 { value = v } else { text = "\(value)" }
+                        focused = false
+                    }
+                    .onChange(of: text) { v in
+                        let digits = v.filter(\.isNumber)
+                        if digits != v { text = digits }
+                        if let v = Int(digits) { value = v }
+                    }
+                    .onChange(of: focused) { isFocused in
+                        if !isFocused {
+                            if let v = Int(text), v >= 0 { value = v } else { text = "\(value)" }
+                        }
+                    }
+                Text("m")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(white: 0.45))
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color(white: 0.18))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            Button { value += 1; text = "\(value)" } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(Color(white: 0.6))
+                    .frame(width: 22, height: 22)
+                    .background(Color(white: 0.18))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
-    }
-
-    // MARK: - Alert chip
-
-    private func alertChip(_ label: String, isOn: Binding<Bool>) -> some View {
-        Button { isOn.wrappedValue.toggle() } label: {
-            Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(isOn.wrappedValue ? .white : Color(white: 0.5))
-                .frame(width: 52, height: 36)
-                .background(isOn.wrappedValue
-                    ? Color(red: 0.31, green: 0.56, blue: 0.97)
-                    : Color(white: 0.15))
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
     }
 }

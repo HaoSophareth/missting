@@ -20,7 +20,13 @@ struct MeetingListView: View {
             .filter { !dismissed.contains($0.id) }
     }
 
-    private var dayLabel: String { dayOffset == 0 ? "Today" : "Tomorrow" }
+    private var dayLabel: String {
+        if dayOffset == 0 { return "Today" }
+        let date = Calendar.current.date(byAdding: .day, value: dayOffset, to: Date())!
+        let formatter = DateFormatter()
+        formatter.dateFormat = dayOffset == 1 ? "'Tomorrow'" : "EEEE, MMM d"
+        return formatter.string(from: date)
+    }
 
     private struct MeetingGroup { let label: String; let meetings: [Meeting] }
 
@@ -206,16 +212,16 @@ struct MeetingListView: View {
             Spacer()
 
             Button {
-                dayOffset = min(1, dayOffset + 1)
+                dayOffset = min(6, dayOffset + 1)
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(dayOffset < 1 ? Color(white: 0.7) : Color(white: 0.2))
+                    .foregroundColor(dayOffset < 6 ? Color(white: 0.7) : Color(white: 0.2))
                     .frame(width: 44, height: 32)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(dayOffset == 1)
+            .disabled(dayOffset == 6)
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 2)
@@ -245,7 +251,7 @@ struct MeetingListView: View {
 
     private var emptyState: some View {
         VStack(spacing: 4) {
-            Text(dayOffset == 0 ? "No meetings today" : "No meetings tomorrow")
+            Text("No meetings")
                 .font(.system(size: 13))
                 .foregroundColor(Color(white: 0.33))
         }

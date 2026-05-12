@@ -20,7 +20,7 @@ struct MeetingCardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 7) {
             // Top row: status + dismiss
             HStack(alignment: .center, spacing: 0) {
                 statusLabel
@@ -105,14 +105,15 @@ struct MeetingCardView: View {
                         }
                     }
                 }
+                .padding(.top, 4)
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
         .background(cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(cardBorder, lineWidth: 0.5)
         )
         .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
@@ -181,9 +182,14 @@ struct MeetingCardView: View {
 
     private func formatMins(_ m: Int) -> String {
         guard m >= 60 else { return "~\(m)m" }
-        let h = m / 60
-        let rem = m % 60
-        return rem == 0 ? "~\(h)h" : "~\(h)h \(rem)m"
+        let totalHours = m / 60
+        guard totalHours >= 24 else {
+            let rem = m % 60
+            return rem == 0 ? "~\(totalHours)h" : "~\(totalHours)h \(rem)m"
+        }
+        let d = totalHours / 24
+        let remH = totalHours % 24
+        return remH == 0 ? "~\(d)d" : "~\(d)d \(remH)h"
     }
 }
 

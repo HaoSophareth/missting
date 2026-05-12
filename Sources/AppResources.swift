@@ -8,6 +8,10 @@ enum AppResources {
         loadImage(name: "sunflower", ext: "png")
     }
 
+    static func sunflowerGray() -> NSImage? {
+        loadImage(name: "sunflower-gray", ext: "png")
+    }
+
     // MARK: - Private
 
     private static func loadImage(name: String, ext: String) -> NSImage? {
