@@ -1,4 +1,4 @@
-# 🌻 Missting
+# Missting
 
 **[missting.vercel.app](https://missting.vercel.app)**
 
