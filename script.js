@@ -171,13 +171,13 @@ document.querySelectorAll("[data-pending-accept]").forEach((button) => {
     card.dataset.meetingCard = "";
     card.dataset.state = "unscheduled";
     card.dataset.baseStyle = "live";
-    card.dataset.statusUnscheduled = "In ~4h 30m";
-    card.dataset.statusScheduled = "Auto-joining in ~4h 30m";
-    card.dataset.statusJoined = "In ~4h 30m";
+    card.dataset.statusUnscheduled = "In ~29h";
+    card.dataset.statusScheduled = "Auto-joining in ~29h";
+    card.dataset.statusJoined = "In ~29h";
 
     const status = card.querySelector(".status");
     if (status) {
-      status.textContent = "In ~4h 30m";
+      status.textContent = "In ~29h";
       status.className = "status status-live";
     }
 

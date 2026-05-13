@@ -1,133 +1,57 @@
-# 🌻 Missting — Never Miss a Meeting
+# 🌻 Missting
 
-A lightweight macOS menu bar app that connects to your Google Calendar and makes sure you actually join your meetings.
+A tiny macOS menu bar app that keeps you on top of your meetings — without the noise.
 
-See what's coming up, auto-join at the right time, and get notified before it's too late — all from your menu bar.
-
----
-
-## Beta Access
-
-Missting is currently in private beta. Google requires me to manually whitelist each user while the app is in testing mode (up to 100 people).
-
-If you want to try it, email **haosophareth070@gmail.com** with the subject **"Missting beta"** and I'll add your Google account. Once you're whitelisted, follow the steps below.
+See what's coming up, get a nudge before it starts, and auto-join at exactly the right moment.
 
 ---
 
-## Installation
+## Get access
+
+Missting is in private beta. To join, email **haosophareth070@gmail.com** with the subject **"Missting beta"** and I'll whitelist your Google account.
+
+---
+
+## Install
 
 > Requires macOS 13 or later.
 
-### Step 1 — Download
-
-Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases/latest).
-
-> **Already have an old version?** That's fine — the install command below removes it automatically. You do not need to uninstall anything first.
-
-### Step 2 — Install with one command
-
-Open **Terminal** (press `⌘ Space`, type `Terminal`, press Enter) and paste this:
+1. Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases/latest)
+2. Open Terminal and paste:
 
 ```bash
-MZIP=$(ls -t ~/Downloads/Missting*.zip 2>/dev/null | head -1) && [ -n "$MZIP" ] && unzip -o "$MZIP" -d /tmp/_MisstingInstall && rm -rf /Applications/Missting.app && xattr -cr /tmp/_MisstingInstall/Missting.app && mv /tmp/_MisstingInstall/Missting.app /Applications/ && rm -rf /tmp/_MisstingInstall && echo "✅ Done! Open Missting from /Applications." || echo "❌ No Missting.zip found in ~/Downloads — make sure the file downloaded there."
+MZIP=$(ls -t ~/Downloads/Missting*.zip 2>/dev/null | head -1) && [ -n "$MZIP" ] && unzip -o "$MZIP" -d /tmp/_MisstingInstall && rm -rf /Applications/Missting.app && xattr -cr /tmp/_MisstingInstall/Missting.app && mv /tmp/_MisstingInstall/Missting.app /Applications/ && rm -rf /tmp/_MisstingInstall && echo "✅ Done!" || echo "❌ No Missting.zip found in ~/Downloads."
 ```
 
-This command handles everything automatically:
-- Finds the zip even if it downloaded as `Missting (1).zip`, `Missting (2).zip`, etc.
-- Unzips it for you — no need to double-click first
-- Removes any old version of the app before installing
-- Clears macOS quarantine so the app opens without security warnings
-
-### Step 3 — Open the app
-
-Launch **Missting** from `/Applications` — the 🌻 sunflower appears in your menu bar.
+3. Open Missting from `/Applications` — the 🌻 appears in your menu bar
+4. Click it → **Sign in with Google** → grant calendar access
 
 ---
 
-## Troubleshooting
+## What it does
 
-**"❌ No Missting.zip found"**
-The zip wasn't saved to `~/Downloads`. Check your browser's download folder and move the file there, or re-download it.
+**Menu bar countdown** — Always know what's next: `in 5m`, `in 2h`, `· in progress`
 
-**"Missting.app can't be opened because Apple cannot check it for malicious software"**
-Run this in Terminal:
-```bash
-xattr -cr /Applications/Missting.app
-```
-Then try opening it again.
+**Auto-join** — Tell Missting to open your meeting link automatically, a few minutes before it starts
 
-**The app opens but shows a blank/empty menu**
-Sign in first: click 🌻 → **Sign in with Google** → grant calendar access.
+**Floating alerts** — A quiet popup appears before each meeting, even when the app isn't open
 
-**Nothing changed after updating**
-Quit Missting first (🌻 → Quit), then re-run the install command above, then reopen it.
+**Smart join tracking** — Once you've joined, Missting knows. If you missed it, it asks if you're already in
+
+**Calendar filtering** — Show only the calendars you care about
+
+**Minerva support** — Auto-detects class join links from your Minerva Academic calendar
 
 ---
 
-## Features
+## Minerva setup (optional)
 
-**Menu bar countdown** — Always know what's next: `in 5m`, `in 2h 30m`, `· in progress`
-
-**Auto-join** — Schedule Missting to open your meeting link automatically, up to 5 minutes before it starts
-
-**Floating alerts** — Non-intrusive popups appear before meetings start, even when Missting isn't open
-
-**Smart join tracking** — Once you've joined, the button flips to "Joined". If you open the app mid-meeting without having joined, it asks if you're already in
-
-**Calendar filtering** — Choose exactly which Google Calendars show up in Missting, mirroring what you've selected in Google Calendar
-
-**Minerva support** — Auto-detects class join links from Minerva Academic calendar (forum.minerva.edu → class.minerva.edu)
-
-**Notification reminders** — Get notified 30m, 15m, 10m, or 5m before meetings start
-
-**Wake from sleep alerts** — If your laptop was asleep during a meeting, Missting alerts you immediately on wake
-
----
-
-## Setup
-
-### Connect Google Calendar
-
-Click the 🌻 in your menu bar → **Sign in with Google** → grant calendar access.
-
-### Minerva Academic Calendar (optional)
-
-To get auto-detected join links for Minerva classes:
-
-1. On **Forum**, open your profile → **Edit Profile** → scroll to the bottom → **Copy Calendar Link**
-2. Open **Google Calendar** → click **+** next to "Other calendars" → **From URL** → paste the link
-3. Refresh Missting — the Minerva status in Settings will turn green
-
----
-
-## Usage
-
-| Action | How |
-|---|---|
-| See upcoming meetings | Click 🌻 in menu bar |
-| Join a meeting | Click **Join now** on any card |
-| Auto-join a meeting | Click **Auto-join** → Missting opens the link at the right time |
-| Dismiss a card | Click **×** — it stays gone until you reopen the popover |
-| Browse tomorrow | Use **›** arrow in the day picker |
-| Filter calendars | Settings (⊟) → Calendars |
-| Change notification timing | Settings → Notify me before meetings |
-| Change auto-join offset | Settings → Auto-join before start |
-
----
-
-## Building from Source
-
-Requires Swift and Xcode Command Line Tools.
-
-```bash
-git clone https://github.com/HaoSophareth/missting.git
-cd missting
-bash build.sh
-cp -r Missting.app /Applications/
-```
+1. On **Forum** → **Edit Profile** → scroll to the bottom → **Copy Calendar Link**
+2. Open **Google Calendar** → **+** next to "Other calendars" → **From URL** → paste
+3. Refresh Missting — the status in Settings turns green
 
 ---
 
 ## Privacy
 
-Missting uses OAuth 2.0 PKCE to authenticate with Google — no passwords are stored. Your calendar data is fetched directly from Google's API and never leaves your machine.
+Missting uses OAuth 2.0 PKCE — no passwords stored. Your calendar data is fetched directly from Google and never leaves your machine.

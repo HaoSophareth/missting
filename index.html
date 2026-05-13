@@ -100,6 +100,35 @@
             </div>
 
             <div class="day-panel" data-day-panel="1" hidden>
+              <article
+                class="meeting-card meeting-card-live"
+                data-meeting-card
+                data-state="unscheduled"
+                data-base-style="live"
+                data-status-unscheduled="In ~27h"
+                data-status-scheduled="Auto-joining in ~27h"
+                data-status-joined="In ~27h"
+                data-dismissable-card
+                data-join-url="https://meet.google.com/jkl-mnop-qrs"
+              >
+                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
+                  ×
+                </button>
+                <p class="status status-live" data-card-status>In ~27h</p>
+                <div class="meeting-row">
+                  <span class="time">2:00 PM</span>
+                  <span class="title">Phareth x Chelsea</span>
+                </div>
+                <div class="chip-row">
+                  <button type="button" class="chip chip-button chip-muted" data-card-primary-action>
+                    Auto-join
+                  </button>
+                  <button type="button" class="chip chip-button chip-primary" data-card-join-action>
+                    Join now
+                  </button>
+                </div>
+              </article>
+
               <article class="meeting-card meeting-card-warm" data-pending-card data-dismissable-card data-join-url="https://meet.google.com/mno-wxyz-klm">
                 <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
                   ×
@@ -112,35 +141,6 @@
                 <div class="chip-row">
                   <button type="button" class="chip chip-button chip-primary" data-pending-accept>Accept</button>
                   <button type="button" class="chip chip-button chip-muted" data-pending-decline>Decline</button>
-                </div>
-              </article>
-
-              <article
-                class="meeting-card meeting-card-live"
-                data-meeting-card
-                data-state="unscheduled"
-                data-base-style="live"
-                data-status-unscheduled="In ~19h"
-                data-status-scheduled="Auto-joining in ~19h"
-                data-status-joined="In ~19h"
-                data-dismissable-card
-                data-join-url="https://meet.google.com/jkl-mnop-qrs"
-              >
-                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
-                  ×
-                </button>
-                <p class="status status-live" data-card-status>In ~19h</p>
-                <div class="meeting-row">
-                  <span class="time">2:00 PM</span>
-                  <span class="title">Phareth x Chelsea</span>
-                </div>
-                <div class="chip-row">
-                  <button type="button" class="chip chip-button chip-muted" data-card-primary-action>
-                    Auto-join
-                  </button>
-                  <button type="button" class="chip chip-button chip-primary" data-card-join-action>
-                    Join now
-                  </button>
                 </div>
               </article>
             </div>
