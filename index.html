@@ -27,13 +27,36 @@
             <span class="nowrap">auto-join at the right moment.</span>
           </p>
           <div class="actions">
-            <a href="https://github.com/HaoSophareth/missting/releases/latest" class="button button-primary">Download</a>
-            <a href="mailto:haosophareth070@gmail.com?subject=Missting%20beta" class="button button-secondary">Join beta</a>
+            <a href="https://github.com/HaoSophareth/missting/releases/latest" class="button button-primary">
+              <svg class="apple-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.22.15-2.22 1.3-2.2 3.88.03 3.06 2.68 4.07 2.71 4.08-.03.07-.43 1.47-1.36 2.61M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+              Download for Mac
+            </a>
+            <a href="https://github.com/HaoSophareth/missting" class="button button-secondary">
+              <svg class="github-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              GitHub
+            </a>
           </div>
         </div>
 
         <div class="preview-stack">
           <div class="preview scenario" aria-label="Day by day meeting preview">
+            <div class="preview-header">
+              <span class="preview-app-name">Missting</span>
+              <div class="preview-header-right">
+                <button type="button" class="preview-icon-btn" id="settings-toggle" aria-label="Open settings">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <line x1="1" y1="4" x2="15" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="1" y1="12" x2="15" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="5" cy="4" r="2" fill="#0d0d0f" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="11" cy="8" r="2" fill="#0d0d0f" stroke="currentColor" stroke-width="1.5"/>
+                    <circle cx="5" cy="12" r="2" fill="#0d0d0f" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="meetings-view">
             <div class="day-switcher">
               <button type="button" class="day-arrow" data-day-nav="prev" aria-label="Previous day">
                 &#8249;
@@ -45,67 +68,50 @@
             </div>
 
             <div class="day-panel is-active" data-day-panel="0">
-              <article class="meeting-card meeting-card-joined" data-dismissable-card>
-                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
-                  ×
-                </button>
-                <p class="status status-joined">In progress · 12m in · 43m left</p>
+              <article class="meeting-card meeting-card-scheduled" data-meeting-card data-state="scheduled" data-base-style="scheduled" data-status-unscheduled="In ~1m 15s" data-status-scheduled="Auto-joining in ~1m 15s" data-status-joined="In ~1m 15s" data-dismissable-card data-join-url="https://meet.google.com/abc-defg-hij" id="soon-card">
+                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>×</button>
+                <p class="status status-scheduled" data-card-status id="soon-status">Auto-joining in ~1m 15s</p>
                 <div class="meeting-row">
-                  <span class="time">11:00 AM</span>
-                  <span class="title">Global studies seminar</span>
+                  <span class="time">11:15 AM</span>
+                  <span class="title">Final Interview w/ Joe Mama</span>
                 </div>
                 <div class="chip-row">
-                  <button type="button" class="chip chip-button chip-joined">
-                    Joined
-                  </button>
+                  <button type="button" class="chip chip-button chip-scheduled" data-card-primary-action>Scheduled</button>
+                  <button type="button" class="chip chip-button chip-muted" data-card-secondary-action>Cancel</button>
+                  <button type="button" class="chip chip-button chip-primary" data-card-join-action>Join now</button>
                 </div>
               </article>
 
-              <article class="meeting-card meeting-card-warm" data-pending-card data-dismissable-card>
+              <article class="meeting-card meeting-card-inprogress" data-inprogress-card data-dismissable-card data-join-url="https://meet.google.com/xyz-pqrs-tuv">
+                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
+                  ×
+                </button>
+                <p class="status status-inprogress"><span class="status-dot"></span>In progress · 12m in · 43m left</p>
+                <div class="meeting-row">
+                  <span class="time">11:00 AM</span>
+                  <span class="title">Office hours</span>
+                </div>
+                <div class="chip-row">
+                  <button type="button" class="chip chip-button chip-muted" data-inprogress-mark>Already in it</button>
+                  <button type="button" class="chip chip-button chip-primary" data-inprogress-join>Join now</button>
+                </div>
+              </article>
+
+            </div>
+
+            <div class="day-panel" data-day-panel="1" hidden>
+              <article class="meeting-card meeting-card-warm" data-pending-card data-dismissable-card data-join-url="https://meet.google.com/mno-wxyz-klm">
                 <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
                   ×
                 </button>
                 <p class="status status-warm">Pending invite</p>
                 <div class="meeting-row">
                   <span class="time">4:30 PM</span>
-                  <span class="title">Office hours</span>
+                  <span class="title">All-hands meeting 180DC</span>
                 </div>
                 <div class="chip-row">
                   <button type="button" class="chip chip-button chip-primary" data-pending-accept>Accept</button>
-                  <button type="button" class="chip chip-button chip-decline" data-pending-decline>Decline</button>
-                </div>
-              </article>
-            </div>
-
-            <div class="day-panel" data-day-panel="1" hidden>
-              <article
-                class="meeting-card meeting-card-scheduled"
-                data-meeting-card
-                data-state="scheduled"
-                data-base-style="scheduled"
-                data-status-unscheduled="In ~14h"
-                data-status-scheduled="Auto-joining in ~14h"
-                data-status-joined="In ~14h"
-                data-dismissable-card
-              >
-                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
-                  ×
-                </button>
-                <p class="status status-scheduled" data-card-status>Auto-joining in ~14h</p>
-                <div class="meeting-row">
-                  <span class="time">9:00 AM</span>
-                  <span class="title">Economics class</span>
-                </div>
-                <div class="chip-row">
-                  <button type="button" class="chip chip-button chip-scheduled" data-card-primary-action>
-                    Scheduled
-                  </button>
-                  <button type="button" class="chip chip-button chip-muted" data-card-secondary-action>
-                    Cancel
-                  </button>
-                  <button type="button" class="chip chip-button chip-primary" data-card-join-action>
-                    Join now
-                  </button>
+                  <button type="button" class="chip chip-button chip-muted" data-pending-decline>Decline</button>
                 </div>
               </article>
 
@@ -118,6 +124,7 @@
                 data-status-scheduled="Auto-joining in ~19h"
                 data-status-joined="In ~19h"
                 data-dismissable-card
+                data-join-url="https://meet.google.com/jkl-mnop-qrs"
               >
                 <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
                   ×
@@ -125,7 +132,7 @@
                 <p class="status status-live" data-card-status>In ~19h</p>
                 <div class="meeting-row">
                   <span class="time">2:00 PM</span>
-                  <span class="title">Writing workshop</span>
+                  <span class="title">Phareth x Chelsea</span>
                 </div>
                 <div class="chip-row">
                   <button type="button" class="chip chip-button chip-muted" data-card-primary-action>
@@ -137,113 +144,74 @@
                 </div>
               </article>
             </div>
+            </div><!-- /meetings-view -->
 
-            <div class="day-panel" data-day-panel="2" hidden>
-              <article
-                class="meeting-card meeting-card-live"
-                data-meeting-card
-                data-state="unscheduled"
-                data-base-style="live"
-                data-status-unscheduled="In ~2d 4h"
-                data-status-scheduled="Auto-joining in ~2d 4h"
-                data-status-joined="In ~2d 4h"
-                data-dismissable-card
-              >
-                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
-                  ×
-                </button>
-                <p class="status status-live" data-card-status>In ~2d 4h</p>
-                <div class="meeting-row">
-                  <span class="time">4:30 PM</span>
-                  <span class="title">Preply lesson - Renny G.</span>
+            <div id="settings-view" hidden>
+              <div class="settings-divider"></div>
+              <div class="settings-row">
+                <span class="settings-label">Notify before meetings</span>
+                <div class="minute-stepper">
+                  <button type="button" class="stepper-btn" data-stepper="notify" data-dir="-1">−</button>
+                  <span class="stepper-display"><input class="stepper-input" data-stepper-val="notify" value="10" min="0" />m</span>
+                  <button type="button" class="stepper-btn" data-stepper="notify" data-dir="1">+</button>
                 </div>
-                <div class="chip-row">
-                  <button type="button" class="chip chip-button chip-muted" data-card-primary-action>
-                    Auto-join
-                  </button>
-                  <button type="button" class="chip chip-button chip-primary" data-card-join-action>
-                    Join now
-                  </button>
+              </div>
+              <div class="settings-divider"></div>
+              <div class="settings-row">
+                <span class="settings-label">Auto-join before start</span>
+                <div class="minute-stepper">
+                  <button type="button" class="stepper-btn" data-stepper="autojoin" data-dir="-1">−</button>
+                  <span class="stepper-display"><input class="stepper-input" data-stepper-val="autojoin" value="5" min="0" />m</span>
+                  <button type="button" class="stepper-btn" data-stepper="autojoin" data-dir="1">+</button>
                 </div>
-              </article>
+              </div>
+              <div class="settings-divider"></div>
+              <div class="settings-section-label">Calendars</div>
+              <button type="button" class="settings-cal-row" data-setting-toggle="cal-personal">
+                <span class="cal-dot" style="background:#4f8ff7"></span>
+                <span class="cal-name">Personal</span>
+                <span class="setting-check is-checked" data-setting-check="cal-personal">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#4f8ff7"/><path d="M3.5 7l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+              <button type="button" class="settings-cal-row" data-setting-toggle="cal-work">
+                <span class="cal-dot" style="background:#33c76b"></span>
+                <span class="cal-name">Work</span>
+                <span class="setting-check is-checked" data-setting-check="cal-work">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#4f8ff7"/><path d="M3.5 7l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+              <button type="button" class="settings-cal-row" data-setting-toggle="cal-minerva">
+                <span class="cal-dot" style="background:#a78bfa"></span>
+                <span class="cal-name">Minerva</span>
+                <span class="setting-check is-checked" data-setting-check="cal-minerva">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#4f8ff7"/><path d="M3.5 7l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+            </div><!-- /settings-view -->
 
-              <article
-                class="meeting-card meeting-card-live"
-                data-meeting-card
-                data-state="unscheduled"
-                data-base-style="live"
-                data-status-unscheduled="In ~2d 8h"
-                data-status-scheduled="Auto-joining in ~2d 8h"
-                data-status-joined="In ~2d 8h"
-                data-dismissable-card
-              >
-                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
-                  ×
-                </button>
-                <p class="status status-live" data-card-status>In ~2d 8h</p>
-                <div class="meeting-row">
-                  <span class="time">8:30 PM</span>
-                  <span class="title">Preply lesson - Tomas V.</span>
-                </div>
-                <div class="chip-row">
-                  <button type="button" class="chip chip-button chip-muted" data-card-primary-action>
-                    Auto-join
-                  </button>
-                  <button type="button" class="chip chip-button chip-primary" data-card-join-action>
-                    Join now
-                  </button>
-                </div>
-              </article>
-
-              <article
-                class="meeting-card meeting-card-scheduled"
-                data-meeting-card
-                data-state="scheduled"
-                data-base-style="scheduled"
-                data-status-unscheduled="In ~2d 10h"
-                data-status-scheduled="Auto-joining in ~2d 10h"
-                data-status-joined="In ~2d 10h"
-                data-dismissable-card
-              >
-                <button type="button" class="dismiss-button" aria-label="Dismiss meeting" data-dismiss-card>
-                  ×
-                </button>
-                <p class="status status-scheduled" data-card-status>Auto-joining in ~2d 10h</p>
-                <div class="meeting-row">
-                  <span class="time">11:00 PM</span>
-                  <span class="title">Sokret x Phareth</span>
-                </div>
-                <div class="chip-row">
-                  <button type="button" class="chip chip-button chip-scheduled" data-card-primary-action>
-                    Scheduled
-                  </button>
-                  <button type="button" class="chip chip-button chip-muted" data-card-secondary-action>
-                    Cancel
-                  </button>
-                  <button type="button" class="chip chip-button chip-primary" data-card-join-action>
-                    Join now
-                  </button>
-                </div>
-              </article>
-            </div>
           </div>
         </div>
       </section>
-
-      <section class="features" aria-label="Features">
-        <article class="feature">
-          <p class="feature-title">Reminders</p>
-          <p class="feature-copy">Choose when Missting nudges you before a meeting starts.</p>
-        </article>
-        <article class="feature">
-          <p class="feature-title">Calendar filters</p>
-          <p class="feature-copy">Pick which calendars show up so the menu bar stays clean.</p>
-        </article>
-        <article class="feature">
-          <p class="feature-title">Minerva support</p>
-          <p class="feature-copy">Detect class links automatically from your Minerva calendar.</p>
-        </article>
-      </section>
     </main>
+  <footer class="page-footer">
+    Inspired by <a href="https://superpowered.me/download" target="_blank" rel="noopener">Superpowered (YC W21)</a>
+  </footer>
+
+  <div class="notif-toast" id="notif-toast" aria-live="assertive" hidden>
+    <div class="notif-row-top">
+      <span class="notif-status">Auto-joining in about 1 minute</span>
+      <button type="button" class="notif-join-btn">Join now</button>
+      <button type="button" class="notif-x" id="notif-close" aria-label="Dismiss">
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 1l6 6M7 1L1 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="notif-divider"></div>
+    <div class="notif-row-bottom">
+      <span class="notif-time">11:15 AM</span>
+      <span class="notif-title">Final Interview w/ Joe Mama</span>
+      <button type="button" class="notif-secondary-btn" id="notif-cancel">Cancel</button>
+    </div>
+  </div>
   </body>
 </html>

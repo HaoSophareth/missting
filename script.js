@@ -1,4 +1,4 @@
-const dayLabels = ["Today", "Tomorrow", "Thursday, May 14"];
+const dayLabels = ["Today", "Tomorrow"];
 const dayLabel = document.querySelector("[data-day-label]");
 const dayPanels = Array.from(document.querySelectorAll("[data-day-panel]"));
 const dayNavButtons = Array.from(document.querySelectorAll("[data-day-nav]"));
@@ -59,7 +59,7 @@ function applyMeetingState(card, state) {
     card.classList.add("meeting-card-joined");
     if (status) {
       status.textContent = card.dataset.statusJoined;
-      status.className = "status status-live";
+      status.className = "status status-joined";
     }
     if (primary) {
       primary.textContent = "Joined";
@@ -94,6 +94,19 @@ function applyMeetingState(card, state) {
 }
 
 function setupMeetingCard(card) {
+  const chipRow = card.querySelector(".chip-row");
+
+  // Ensure every card has a secondary (Cancel) slot — inject one if missing
+  if (chipRow && !card.querySelector("[data-card-secondary-action]")) {
+    const join = chipRow.querySelector("[data-card-join-action]");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip chip-button chip-muted is-hidden";
+    btn.dataset.cardSecondaryAction = "";
+    btn.textContent = "Cancel";
+    chipRow.insertBefore(btn, join ?? null);
+  }
+
   const primary = card.querySelector("[data-card-primary-action]");
   const secondary = card.querySelector("[data-card-secondary-action]");
   const join = card.querySelector("[data-card-join-action]");
@@ -116,10 +129,29 @@ function setupMeetingCard(card) {
 
   join?.addEventListener("click", () => {
     applyMeetingState(card, "joined");
+    if (card.dataset.joinUrl) window.open(card.dataset.joinUrl, "_blank");
   });
 }
 
 document.querySelectorAll("[data-meeting-card]").forEach(setupMeetingCard);
+
+document.querySelectorAll("[data-inprogress-card]").forEach((card) => {
+  function transitionToJoined() {
+    card.classList.remove("meeting-card-inprogress");
+    card.classList.add("meeting-card-joined");
+    const status = card.querySelector(".status");
+    if (status) status.className = "status status-joined";
+    const chipRow = card.querySelector(".chip-row");
+    if (chipRow) {
+      chipRow.innerHTML = `<button type="button" class="chip chip-button chip-joined">Joined</button>`;
+    }
+  }
+  card.querySelector("[data-inprogress-mark]")?.addEventListener("click", transitionToJoined);
+  card.querySelector("[data-inprogress-join]")?.addEventListener("click", () => {
+    transitionToJoined();
+    if (card.dataset.joinUrl) window.open(card.dataset.joinUrl, "_blank");
+  });
+});
 
 document.querySelectorAll("[data-dismiss-card]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -186,3 +218,109 @@ dayNavButtons.forEach((button) => {
 });
 
 renderDay();
+
+// Countdown card + notification demo
+(function () {
+  const statusEl = document.getElementById("soon-status");
+  const toast = document.getElementById("notif-toast");
+  const closeBtn = document.getElementById("notif-close");
+  if (!statusEl || !toast) return;
+
+  let secsLeft = 75;
+  let notifFired = false;
+
+  const soonCard = document.getElementById("soon-card");
+
+  function fmt(s) {
+    const scheduled = soonCard?.dataset.state === "scheduled";
+    const prefix = scheduled ? "Auto-joining in" : "In";
+    if (s <= 0) return scheduled ? "Auto-joining now" : "Starting now";
+    if (s < 60) return `${prefix} ~${s}s`;
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return rem === 0 ? `${prefix} ~${m}m` : `${prefix} ~${m}m ${rem}s`;
+  }
+
+  function showNotif() {
+    toast.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("is-visible")));
+    setTimeout(dismissNotif, 30000);
+  }
+
+  function dismissNotif() {
+    toast.classList.remove("is-visible");
+    setTimeout(() => { toast.hidden = true; }, 420);
+  }
+
+  closeBtn?.addEventListener("click", dismissNotif);
+
+  toast.querySelector(".notif-join-btn")?.addEventListener("click", () => {
+    const card = document.getElementById("soon-card");
+    if (card) {
+      applyMeetingState(card, "joined");
+      if (card.dataset.joinUrl) window.open(card.dataset.joinUrl, "_blank");
+    }
+    clearInterval(interval);
+    dismissNotif();
+  });
+
+  document.getElementById("notif-cancel")?.addEventListener("click", () => {
+    const card = document.getElementById("soon-card");
+    if (card) applyMeetingState(card, "unscheduled");
+    dismissNotif();
+  });
+
+  const interval = setInterval(() => {
+    secsLeft--;
+    statusEl.textContent = fmt(secsLeft);
+    statusEl.className = "status " + (soonCard?.dataset.state === "scheduled" ? "status-scheduled" : "status-live");
+    if (!notifFired && secsLeft <= 60) {
+      notifFired = true;
+      showNotif();
+    }
+    if (secsLeft <= 0) clearInterval(interval);
+  }, 1000);
+})();
+
+// Settings toggle
+const settingsToggle = document.getElementById("settings-toggle");
+const meetingsView = document.getElementById("meetings-view");
+const settingsView = document.getElementById("settings-view");
+
+settingsToggle?.addEventListener("click", () => {
+  const open = !settingsView.hidden;
+  settingsView.hidden = open;
+  meetingsView.hidden = !open;
+  settingsToggle.classList.toggle("is-active", !open);
+});
+
+// Minute steppers
+function getStepperInput(key) {
+  return document.querySelector(`[data-stepper-val="${key}"]`);
+}
+
+document.querySelectorAll(".stepper-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const key = btn.dataset.stepper;
+    const dir = parseInt(btn.dataset.dir, 10);
+    const input = getStepperInput(key);
+    const current = Math.max(0, parseInt(input.value, 10) || 0);
+    input.value = Math.max(0, current + dir);
+  });
+});
+
+document.querySelectorAll(".stepper-input").forEach((input) => {
+  input.addEventListener("change", () => {
+    const val = parseInt(input.value, 10);
+    input.value = isNaN(val) || val < 0 ? 0 : val;
+  });
+});
+
+// Settings toggles (show all events + calendars)
+document.querySelectorAll("[data-setting-toggle]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const key = btn.dataset.settingToggle;
+    const check = btn.querySelector(`[data-setting-check="${key}"]`);
+    check?.classList.toggle("is-checked");
+  });
+});
