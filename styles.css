@@ -57,14 +57,6 @@ a:focus-visible {
   padding: 48px 0;
 }
 
-.app-icon {
-  display: block;
-  width: 52px;
-  height: 52px;
-  margin-bottom: 20px;
-  border-radius: 14px;
-}
-
 .page-footer {
   position: fixed;
   bottom: 20px;
