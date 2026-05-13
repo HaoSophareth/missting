@@ -1,6 +1,4 @@
-<img src="Resources/sunflower.png" alt="Missting" width="64" />
-
-# Missting
+# 🌻 Missting
 
 **[missting.vercel.app](https://missting.vercel.app)**
 
