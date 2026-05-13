@@ -26,24 +26,6 @@ MZIP=$(ls -t ~/Downloads/Missting*.zip 2>/dev/null | head -1) && [ -n "$MZIP" ] 
 
 ---
 
-## Features
-
-**See what's coming up** — A live countdown in your menu bar: `in 5m`, `in 2h`, `· in progress`
-
-**Get notified** — A quiet popup appears before each meeting so you never miss the moment
-
-**Auto-join** — Missting opens your meeting link automatically, right on time
-
----
-
-## Minerva setup (optional)
-
-1. On **Forum** → **Edit Profile** → scroll to the bottom → **Copy Calendar Link**
-2. Open **Google Calendar** → **+** next to "Other calendars" → **From URL** → paste
-3. Refresh Missting — the status in Settings turns green
-
----
-
 ## Privacy
 
 Missting uses OAuth 2.0 PKCE — no passwords stored. Your calendar data is fetched directly from Google and never leaves your machine.
