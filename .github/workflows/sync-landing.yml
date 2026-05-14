@@ -1,0 +1,26 @@
+name: Sync landing page to phareth site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - styles.css
+      - script.js
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Push landing page files to phareth repo
+        run: |
+          git clone https://x-access-token:${{ secrets.PHARETH_REPO_TOKEN }}@github.com/HaoSophareth/phareth.git phareth-site
+          cp index.html styles.css script.js phareth-site/missting/
+          cd phareth-site
+          git config user.email "haosophareth070@gmail.com"
+          git config user.name "HaoSophareth"
+          git add missting/
+          git diff --cached --quiet || git commit -m "sync: update missting landing page"
+          git push
