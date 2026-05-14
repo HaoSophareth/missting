@@ -18,6 +18,9 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.PHARETH_REPO_TOKEN }}@github.com/HaoSophareth/phareth.git phareth-site
           cp index.html styles.css script.js phareth-site/missting/
+          sed -i 's|href="styles.css"|href="/missting/styles.css"|g' phareth-site/missting/index.html
+          sed -i 's|src="script.js"|src="/missting/script.js"|g' phareth-site/missting/index.html
+          sed -i '/href="Resources\/sunflower.png"/d' phareth-site/missting/index.html
           cd phareth-site
           git config user.email "haosophareth070@gmail.com"
           git config user.name "HaoSophareth"
