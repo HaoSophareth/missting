@@ -1,6 +1,6 @@
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/(.*)", "destination": "https://phareth.is-a.dev/missting", "permanent": true }
+    { "source": "/", "destination": "https://phareth.is-a.dev/missting", "permanent": true }
   ]
 }
