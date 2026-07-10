@@ -31,6 +31,8 @@ final class AutoJoinManager: ObservableObject {
     }
     private var scheduled: [String: ScheduledJoin] = [:]
     private var pollTimer: Timer?
+    /// Consecutive fetches each cancelled/persisted meeting id has been missing for.
+    private var missingFetchCounts: [String: Int] = [:]
 
     private init() {
         // Check immediately when Mac wakes from sleep
@@ -46,6 +48,8 @@ final class AutoJoinManager: ObservableObject {
     func schedule(_ meeting: Meeting) {
         persistedScheduledIds.insert(meeting.id)
         UserDefaults.standard.set(Array(persistedScheduledIds), forKey: "persistedScheduledIds")
+        // User re-engaged with this meeting — an earlier X no longer applies
+        JoinTracker.shared.clearDismissed(meeting)
         scheduleInternal(meeting)
     }
 
@@ -65,8 +69,7 @@ final class AutoJoinManager: ObservableObject {
 
         // Already past the join time — fire immediately if meeting hasn't ended
         if joinDate <= Date() {
-            guard meeting.endDate > Date() else { return }
-            fire(meeting: meeting, url: url, joinDate: joinDate)
+            fire(meeting: meeting, url: url)
             return
         }
 
@@ -101,11 +104,23 @@ final class AutoJoinManager: ObservableObject {
     }
 
     /// Called after each fetch — prunes stale entries for meetings that no longer exist.
+    /// A meeting must be missing from several consecutive fetches before pruning, so a
+    /// single failed calendar request can't wipe cancel state (which would let a
+    /// cancelled Minerva class re-schedule itself).
     func cleanupCancelled(activeMeetingIds: Set<String>) {
+        for id in manuallyCancelled.union(persistedScheduledIds) {
+            missingFetchCounts[id] = activeMeetingIds.contains(id) ? 0 : (missingFetchCounts[id] ?? 0) + 1
+        }
+        let gone: (String) -> Bool = { (self.missingFetchCounts[$0] ?? 0) >= 5 }
+
         let prevCancelled = manuallyCancelled.count
         let prevPersisted = persistedScheduledIds.count
-        manuallyCancelled = manuallyCancelled.filter { activeMeetingIds.contains($0) }
-        persistedScheduledIds = persistedScheduledIds.filter { activeMeetingIds.contains($0) }
+        manuallyCancelled = manuallyCancelled.filter { !gone($0) }
+        persistedScheduledIds = persistedScheduledIds.filter { !gone($0) }
+
+        // Drop counters for ids we no longer track so the dictionary can't grow stale
+        let tracked = manuallyCancelled.union(persistedScheduledIds)
+        missingFetchCounts = missingFetchCounts.filter { $0.value > 0 && tracked.contains($0.key) }
         if manuallyCancelled.count != prevCancelled {
             UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
         }
@@ -149,27 +164,28 @@ final class AutoJoinManager: ObservableObject {
             scheduled.removeValue(forKey: meetingId)
             scheduledIds.remove(meetingId)
 
-            // Meeting already ended — skip silently
-            guard join.meeting.endDate > now else { continue }
-
-            fire(meeting: join.meeting, url: join.url, joinDate: join.joinDate)
+            fire(meeting: join.meeting, url: join.url)
         }
         if scheduled.isEmpty { stopPolling() }
     }
 
-    /// Scans for recently-started meetings the user hasn't joined and auto-joins them.
-    /// Only fires within the first 10 minutes of a meeting's start — after that, the
-    /// user has had a chance to join and chose not to, so we leave them alone.
+    /// Scans for recently-started meetings the user scheduled for auto-join (Minerva
+    /// classes or a manual Auto-join click) but hasn't joined yet — e.g. the Mac was
+    /// asleep when the join time passed — and joins them. Only fires within the first
+    /// 30 minutes of the start; never touches meetings that were never scheduled.
     func checkInProgressMeetings() {
         guard !CallDetector.shared.isInCall else { return }
         let recentWindow: TimeInterval = 30 * 60
         for meeting in CalendarManager.shared.meetings {
-            guard meeting.isInProgress,
+            let isMinerva = meeting.joinURL?.host?.contains("class.minerva.edu") == true
+            guard isMinerva || persistedScheduledIds.contains(meeting.id),
+                  meeting.isInProgress,
                   Date().timeIntervalSince(meeting.startDate) <= recentWindow,
                   let url = meeting.joinURL,
                   !meeting.isPending,
                   !meeting.isDeclined,
                   !JoinTracker.shared.hasJoined(meeting),
+                  !JoinTracker.shared.isDismissed(meeting),
                   !isManuallyCancelled(meeting.id) else { continue }
             FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
             NSSound(named: "Funk")?.play()
@@ -179,15 +195,11 @@ final class AutoJoinManager: ObservableObject {
         }
     }
 
-    private func fire(meeting: Meeting, url: URL, joinDate: Date) {
-        let lateBy = Date().timeIntervalSince(joinDate)
-
-        if lateBy > 120 {
-            // Woke up late — if the meeting is still going, join anyway.
-            // If already in another call, skip silently; checkInProgressMeetings
-            // will pick it up the moment that call ends.
-            guard meeting.endDate > Date(), !CallDetector.shared.isInCall else { return }
-        }
+    private func fire(meeting: Meeting, url: URL) {
+        // Never barge in while the user is on another call — checkInProgressMeetings
+        // picks this meeting up the moment that call ends. And never join a meeting
+        // that already ended (possible after a long sleep).
+        guard meeting.endDate > Date(), !CallDetector.shared.isInCall else { return }
 
         FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
         NSSound(named: "Funk")?.play()

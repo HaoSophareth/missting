@@ -39,7 +39,12 @@ final class FloatingAlertManager {
                     JoinTracker.shared.markJoined(meeting)
                     self?.dismiss(meetingId: meeting.id)
                 },
-                onDismiss: { [weak self] in self?.dismiss(meetingId: meeting.id) },
+                onDismiss: { [weak self] in
+                    // Explicit X = "stop alerting me about this meeting".
+                    // The 30s auto-timeout below calls dismiss() directly and does NOT count.
+                    JoinTracker.shared.markDismissed(meeting)
+                    self?.dismiss(meetingId: meeting.id)
+                },
                 autoJoinReminderMode: autoJoinReminderMode
             )
             .environmentObject(AutoJoinManager.shared)

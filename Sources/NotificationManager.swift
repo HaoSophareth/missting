@@ -26,9 +26,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
     }
 
-    /// Called every minute from CalendarManager. Fires a notification the first time
-    /// a meeting crosses each enabled threshold (30m, 10m, 5m, 0m).
-    /// Called on system wake — shows a floating alert for any meeting currently in progress.
+    /// Called on system wake — shows a floating alert for any meeting currently in progress
+    /// that the user hasn't joined, dismissed, or scheduled for auto-join.
     func alertInProgressMeetings(_ meetings: [Meeting]) {
         DispatchQueue.main.async {
             for meeting in meetings {
@@ -37,12 +36,17 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                       !meeting.isDeclined,
                       meeting.joinURL != nil,
                       !JoinTracker.shared.hasJoined(meeting),
+                      !JoinTracker.shared.isDismissed(meeting),
                       !AutoJoinManager.shared.isScheduled(meeting.id) else { continue }
                 FloatingAlertManager.shared.present(meeting: meeting)
             }
         }
     }
 
+    /// Called after every calendar fetch (~1/min). Fires a notification the first time
+    /// a meeting crosses each enabled threshold, but only while the threshold is still
+    /// fresh — after sleep/wake we skip stale "Starting in X minutes" banners and show
+    /// a single in-progress alert instead.
     func checkAndNotify(meetings: [Meeting], offsets: [Int]) {
         var seenNow = shown
 
@@ -50,38 +54,52 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             // Never notify for pending, declined, or link-less events
             if meeting.isPending || meeting.isDeclined || meeting.joinURL == nil { continue }
 
-            // Skip if user already joined or auto-join is scheduled
-            if JoinTracker.shared.hasJoined(meeting) || AutoJoinManager.shared.isScheduled(meeting.id) { continue }
+            // Skip if user already joined, dismissed the alert, or auto-join is scheduled
+            if JoinTracker.shared.hasJoined(meeting)
+                || JoinTracker.shared.isDismissed(meeting)
+                || AutoJoinManager.shared.isScheduled(meeting.id) { continue }
 
             let mins = meeting.minsUntilStart
 
-            // Clean up old keys for meetings that have ended
-            if meeting.endDate < Date() {
-                offsets.forEach { seenNow.remove("\(meeting.id)-\($0)") }
-                continue
-            }
-
             for offset in offsets {
-                guard mins <= offset else { continue } // not yet at this threshold
+                guard mins <= offset else { continue }       // not yet at this threshold
+                guard offset - mins <= 2 else { continue }   // crossed too long ago — stale
                 let key = "\(meeting.id)-\(offset)"
                 guard !seenNow.contains(key) else { continue } // already notified
 
                 fireNotification(for: meeting, offset: offset)
                 seenNow.insert(key)
             }
+
+            // App launched or woke mid-meeting and every threshold went stale —
+            // show one in-progress alert instead of outdated countdown banners.
+            if meeting.isInProgress {
+                let key = "\(meeting.id)-inprogress"
+                let sawAnyOffset = offsets.contains { seenNow.contains("\(meeting.id)-\($0)") }
+                if !sawAnyOffset, !seenNow.contains(key) {
+                    seenNow.insert(key)
+                    FloatingAlertManager.shared.present(meeting: meeting)
+                }
+            }
+        }
+
+        // Ended meetings are filtered out before we ever see them, so dedup keys
+        // are never cleaned up per-meeting — prune to current meetings once large.
+        if seenNow.count > 200 {
+            let activeIds = meetings.map(\.id)
+            seenNow = seenNow.filter { key in activeIds.contains { key.hasPrefix("\($0)-") } }
         }
 
         shown = seenNow
     }
 
     func cancelNotifications(for eventId: String) {
-        // Remove in-memory dedup keys so if rescheduled they can fire again
-        var s = shown
-        s = s.filter { !$0.hasPrefix("\(eventId)-") }
-        shown = s
-        // Also remove any banners already delivered
-        center.removeDeliveredNotifications(withIdentifiers:
-            [30, 15, 10, 5, 0].map { "\(eventId)-\($0)" })
+        // Remove dedup keys so if rescheduled they can fire again,
+        // and remove any banners already delivered (banner ids == dedup keys)
+        let keys = shown.filter { $0.hasPrefix("\(eventId)-") }
+        guard !keys.isEmpty else { return }
+        shown = shown.subtracting(keys)
+        center.removeDeliveredNotifications(withIdentifiers: Array(keys))
     }
 
     // MARK: - Private
