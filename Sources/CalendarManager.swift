@@ -80,57 +80,6 @@ final class CalendarManager: ObservableObject {
         }
     }
 
-    /// RSVP to a meeting — updates local state instantly, syncs to Google Calendar in background.
-    func rsvp(meeting: Meeting, accept: Bool) {
-        // Optimistic update: change responseStatus locally right now
-        let newStatus = accept ? "accepted" : "declined"
-        if let idx = meetings.firstIndex(where: { $0.id == meeting.id }) {
-            meetings[idx] = Meeting(
-                id:             meeting.id,
-                title:          meeting.title,
-                startDate:      meeting.startDate,
-                endDate:        meeting.endDate,
-                joinURL:        meeting.joinURL,
-                calendarEmail:  meeting.calendarEmail,
-                calendarId:     meeting.calendarId,
-                responseStatus: newStatus
-            )
-        }
-
-        // Sync to Google Calendar in the background
-        Task {
-            do {
-                let token = try await auth.getValidToken()
-                guard let selfEmail = meeting.calendarEmail ?? auth.userEmail else { return }
-                let encodedEvent = meeting.id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? meeting.id
-
-                // Fetch full event to preserve all attendees
-                var getReq = URLRequest(url: URL(string:
-                    "https://www.googleapis.com/calendar/v3/calendars/primary/events/\(encodedEvent)")!)
-                getReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                let (getData, _) = try await URLSession.shared.data(for: getReq)
-                guard let eventJson = try? JSONSerialization.jsonObject(with: getData) as? [String: Any],
-                      var attendees = eventJson["attendees"] as? [[String: Any]] else { return }
-
-                for i in attendees.indices {
-                    if let email = attendees[i]["email"] as? String, email == selfEmail {
-                        attendees[i]["responseStatus"] = newStatus
-                    }
-                }
-
-                var patchReq = URLRequest(url: URL(string:
-                    "https://www.googleapis.com/calendar/v3/calendars/primary/events/\(encodedEvent)?sendUpdates=all")!)
-                patchReq.httpMethod = "PATCH"
-                patchReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                patchReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                patchReq.httpBody = try? JSONSerialization.data(withJSONObject: ["attendees": attendees])
-                _ = try? await URLSession.shared.data(for: patchReq)
-            } catch {
-                print("RSVP error:", error)
-            }
-        }
-    }
-
     private init() {}
 
     func startRefreshingIfSignedIn() {

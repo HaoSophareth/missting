@@ -6,9 +6,9 @@ import AppKit
 final class GoogleAuthManager: NSObject, ObservableObject {
     static let shared = GoogleAuthManager()
 
-    private let clientId      = "267510202208-v3f2f0fsouhptgh62hphus7t4hhppf0i.apps.googleusercontent.com"
-    private let redirectScheme = "com.googleusercontent.apps.267510202208-v3f2f0fsouhptgh62hphus7t4hhppf0i"
-    private let scope = "openid email https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly"
+    private let clientId      = "34429310373-fb6vc3rr5i7c9c8oi0i7vvueslk18j7m.apps.googleusercontent.com"
+    private let redirectScheme = "com.googleusercontent.apps.34429310373-fb6vc3rr5i7c9c8oi0i7vvueslk18j7m"
+    private let scope = "openid email https://www.googleapis.com/auth/calendar.readonly"
 
     @Published var connectedEmails: [String] = []
 

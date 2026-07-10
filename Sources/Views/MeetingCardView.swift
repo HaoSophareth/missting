@@ -80,6 +80,11 @@ struct MeetingCardView: View {
                             if let url = meeting.joinURL { NSWorkspace.shared.open(url) }
                         }
                         .buttonStyle(JoinedButtonStyle())
+                        Button("Cancel") {
+                            JoinTracker.shared.cancelJoin(meeting)
+                            joinedLocally = false
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
                     } else {
                         if hasLink && !isScheduled {
                             Button("Auto-join") { autoJoin.schedule(meeting) }
@@ -230,12 +235,6 @@ struct PendingMeetingCard: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(Color(white: 0.7))
                     .lineLimit(1)
-            }
-            HStack(spacing: 6) {
-                Button("Accept") { CalendarManager.shared.rsvp(meeting: meeting, accept: true) }
-                    .buttonStyle(PrimaryButtonStyle())
-                Button("Decline") { CalendarManager.shared.rsvp(meeting: meeting, accept: false) }
-                    .buttonStyle(SecondaryButtonStyle())
             }
         }
         .padding(.horizontal, 12)
