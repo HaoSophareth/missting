@@ -1,0 +1,37 @@
+name: Consistency check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install command is identical on every surface
+        run: |
+          CMD='curl -fsSL https://raw.githubusercontent.com/HaoSophareth/missting/main/install.sh | bash'
+          FAIL=0
+          for f in README.md index.html .github/workflows/release.yml; do
+            if ! grep -qF "$CMD" "$f"; then
+              echo "::error file=$f::Canonical install command missing or modified in $f"
+              FAIL=1
+            fi
+          done
+          exit $FAIL
+
+      - name: install.sh parses and targets the right release
+        run: |
+          bash -n install.sh
+          grep -qF "releases/latest/download/Missting.zip" install.sh
+
+      - name: Minimum macOS version agrees everywhere
+        run: |
+          PLIST=$(grep -A1 LSMinimumSystemVersion Info.plist | grep string | sed 's/[^0-9.]//g')
+          APPCAST=$(grep minimumSystemVersion .github/workflows/release.yml | sed 's/[^0-9.]//g')
+          README_MAJOR=$(grep -oE 'macOS [0-9]+' README.md | head -1 | sed 's/[^0-9]//g')
+          echo "Info.plist=$PLIST appcast=$APPCAST readme=macOS $README_MAJOR"
+          [ "$PLIST" = "$APPCAST" ] && [ "${PLIST%%.*}" = "$README_MAJOR" ]

@@ -44,7 +44,7 @@ jobs:
           Press `⌘ Command + Space`, type **Terminal**, press Return, then paste this line and press Return:
 
           ```
-          curl -fsSL https://github.com/HaoSophareth/missting/releases/latest/download/Missting.zip -o /tmp/Missting.zip && killall Missting 2>/dev/null; rm -rf /Applications/Missting.app && ditto -xk /tmp/Missting.zip /Applications && xattr -cr /Applications/Missting.app && open /Applications/Missting.app
+          curl -fsSL https://raw.githubusercontent.com/HaoSophareth/missting/main/install.sh | bash
           ```
 
           Missting is a free beta and not yet notarized by Apple, so double-clicking the downloaded zip shows a false "damaged" warning. The line above installs and opens the app directly. Once installed, future updates arrive automatically inside the app.
