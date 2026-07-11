@@ -173,8 +173,8 @@ final class AutoJoinManager: ObservableObject {
     /// classes or a manual Auto-join click) but hasn't joined yet — e.g. the Mac was
     /// asleep when the join time passed — and joins them. Only fires within the first
     /// 30 minutes of the start; never touches meetings that were never scheduled.
+    /// Runs even while the user is on another call: it only opens the lobby.
     func checkInProgressMeetings() {
-        guard !CallDetector.shared.isInCall else { return }
         let recentWindow: TimeInterval = 30 * 60
         for meeting in CalendarManager.shared.meetings {
             let isMinerva = meeting.joinURL?.host?.contains("class.minerva.edu") == true
@@ -196,10 +196,10 @@ final class AutoJoinManager: ObservableObject {
     }
 
     private func fire(meeting: Meeting, url: URL) {
-        // Never barge in while the user is on another call — checkInProgressMeetings
-        // picks this meeting up the moment that call ends. And never join a meeting
-        // that already ended (possible after a long sleep).
-        guard meeting.endDate > Date(), !CallDetector.shared.isInCall else { return }
+        // Never join a meeting that already ended (possible after a long sleep).
+        // Being on another call is NOT a blocker: opening the link only lands in
+        // the meeting lobby — actually joining stays a conscious click by the user.
+        guard meeting.endDate > Date() else { return }
 
         FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
         NSSound(named: "Funk")?.play()

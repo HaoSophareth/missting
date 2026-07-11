@@ -24,8 +24,8 @@ final class FloatingAlertManager {
     }
 
     private func _present(meeting: Meeting, autoJoinReminderMode: Bool) {
-        // Don't interrupt if the user is already in an active call
-        if CallDetector.shared.isInCall { return }
+        // Deliberately NOT suppressed while the user is on another call —
+        // knowing the next meeting started is exactly when it matters most.
         // Don't show a duplicate for the same meeting
         if entries.contains(where: { $0.meetingId == meeting.id }) { return }
 
