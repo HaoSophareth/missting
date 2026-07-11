@@ -11,9 +11,15 @@
     <key>CFBundleIdentifier</key>
     <string>com.missting.app</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>1.1.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.1.0</string>
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/HaoSophareth/missting/main/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>Ute+yPgs9uaorkzo+gU3t5j75XL3gi78xZZ13d7H13g=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
     <key>LSUIElement</key>
     <true/>
     <key>NSUserNotificationAlertStyle</key>

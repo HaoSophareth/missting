@@ -1,0 +1,86 @@
+name: Build and release app
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stamp version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" Info.plist
+
+      - name: Build universal app bundle
+        run: UNIVERSAL=1 ./build.sh
+
+      - name: Zip app
+        run: ditto -c -k --keepParent Missting.app Missting.zip
+
+      - name: Sign update with Sparkle key
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          SIGN=.build/artifacts/sparkle/Sparkle/bin/sign_update
+          SIGNATURE=$(echo "$SPARKLE_PRIVATE_KEY" | "$SIGN" Missting.zip --ed-key-file -)
+          echo "SIGNATURE=$SIGNATURE" >> "$GITHUB_ENV"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > notes.md <<'EOF'
+          ## Install (one line, no warnings)
+
+          Press `⌘ Space`, type **Terminal**, press Return, then paste this line and press Return:
+
+          ```
+          curl -fsSL https://github.com/HaoSophareth/missting/releases/latest/download/Missting.zip -o /tmp/Missting.zip && ditto -xk /tmp/Missting.zip /Applications && xattr -cr /Applications/Missting.app && open /Applications/Missting.app
+          ```
+
+          Missting is a free beta and not yet notarized by Apple, so double-clicking the downloaded zip shows a false "damaged" warning. The line above installs and opens the app directly. Once installed, future updates arrive automatically inside the app.
+          EOF
+          gh release create "$GITHUB_REF_NAME" Missting.zip \
+            --title "Missting v$VERSION" \
+            --notes-file notes.md \
+            --generate-notes
+
+      - name: Update appcast on main
+        run: |
+          git fetch origin main
+          git checkout main
+          cat > appcast.xml <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+            <channel>
+              <title>Missting</title>
+              <link>https://github.com/HaoSophareth/missting</link>
+              <item>
+                <title>Version $VERSION</title>
+                <pubDate>$(date -R)</pubDate>
+                <sparkle:version>$VERSION</sparkle:version>
+                <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>12.0</sparkle:minimumSystemVersion>
+                <link>https://github.com/HaoSophareth/missting/releases/tag/v$VERSION</link>
+                <enclosure
+                  url="https://github.com/HaoSophareth/missting/releases/download/v$VERSION/Missting.zip"
+                  $SIGNATURE
+                  type="application/octet-stream"/>
+              </item>
+            </channel>
+          </rss>
+          EOF
+          git config user.name "HaoSophareth"
+          git config user.email "haosophareth070@gmail.com"
+          git add appcast.xml
+          git commit -m "Update appcast for v$VERSION"
+          git push origin main

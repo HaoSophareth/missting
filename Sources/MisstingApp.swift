@@ -1,9 +1,18 @@
 import AppKit
 import SwiftUI
 import ServiceManagement
+import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var welcomePanel: NSPanel?
+
+    /// Sparkle auto-updater — checks the appcast feed on a schedule and
+    /// installs signed updates from GitHub Releases.
+    let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
