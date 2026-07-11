@@ -23,6 +23,7 @@ jobs:
           sed -i 's|href="/favicon.png"|href="/missting/favicon.png"|g' phareth-site/missting/index.html
           sed -i 's|href="/privacy"|href="/missting/privacy"|g' phareth-site/missting/index.html
           sed -i 's|href="/terms"|href="/missting/terms"|g' phareth-site/missting/index.html
+          sed -i 's|href="/" class="back"|href="/missting" class="back"|g' phareth-site/missting/privacy.html phareth-site/missting/terms.html
           sed -i '/href="Resources\/sunflower.png"/d' phareth-site/missting/index.html
           cd phareth-site
           git config user.email "haosophareth070@gmail.com"
