@@ -14,17 +14,21 @@ Missting is in private beta. To join, email **haosophareth070@gmail.com** with t
 
 ## Install
 
-> Requires macOS 13 or later.
+> Requires macOS 12 or later.
 
-1. Download `Missting.zip` from the [latest release](https://github.com/HaoSophareth/missting/releases/latest)
-2. Open Terminal and paste:
+No download needed — press `⌘ Space`, type **Terminal**, press Return, then paste this line and press Return:
 
 ```bash
-MZIP=$(ls -t ~/Downloads/Missting*.zip 2>/dev/null | head -1) && [ -n "$MZIP" ] && unzip -o "$MZIP" -d /tmp/_MisstingInstall && rm -rf /Applications/Missting.app && xattr -cr /tmp/_MisstingInstall/Missting.app && mv /tmp/_MisstingInstall/Missting.app /Applications/ && rm -rf /tmp/_MisstingInstall && echo "✅ Done!" || echo "❌ No Missting.zip found in ~/Downloads."
+curl -fsSL https://github.com/HaoSophareth/missting/releases/latest/download/Missting.zip -o /tmp/Missting.zip && ditto -xk /tmp/Missting.zip /Applications && xattr -cr /Applications/Missting.app && open /Applications/Missting.app
 ```
 
-3. Open Missting from `/Applications`
-4. Click it → **Sign in with Google** → grant calendar access
+It installs the latest version straight into `/Applications` and opens it. Then click the 🌻 in your menu bar → **Sign in with Google** → grant calendar access.
+
+Missting is a free beta and not yet notarized by Apple, which is why a normal double-click on the downloaded zip shows a false "damaged" warning — the line above avoids that entirely.
+
+### Updates
+
+Missting updates itself: it checks for new releases daily and installs them in the background (or right-click the 🌻 → **Check for Updates…**). You only ever run the install line once.
 
 ---
 
