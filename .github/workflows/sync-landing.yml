@@ -1,12 +1,16 @@
 name: Sync landing page to phareth site
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - index.html
       - styles.css
       - script.js
+      - privacy.html
+      - terms.html
+      - .github/workflows/sync-landing.yml
 
 jobs:
   sync:
