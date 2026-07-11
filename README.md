@@ -16,10 +16,10 @@ Missting is in private beta. To join, email **haosophareth070@gmail.com** with t
 
 > Requires macOS 12 or later.
 
-No download needed — press `⌘ Space`, type **Terminal**, press Return, then paste this line and press Return:
+No download needed — press `⌘ Command + Space`, type **Terminal**, press Return, then paste this line and press Return:
 
 ```bash
-curl -fsSL https://github.com/HaoSophareth/missting/releases/latest/download/Missting.zip -o /tmp/Missting.zip && ditto -xk /tmp/Missting.zip /Applications && xattr -cr /Applications/Missting.app && open /Applications/Missting.app
+curl -fsSL https://github.com/HaoSophareth/missting/releases/latest/download/Missting.zip -o /tmp/Missting.zip && killall Missting 2>/dev/null; rm -rf /Applications/Missting.app && ditto -xk /tmp/Missting.zip /Applications && xattr -cr /Applications/Missting.app && open /Applications/Missting.app
 ```
 
 It installs the latest version straight into `/Applications` and opens it. Then click the 🌻 in your menu bar → **Sign in with Google** → grant calendar access.
