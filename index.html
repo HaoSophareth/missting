@@ -38,6 +38,19 @@
               GitHub
             </a>
           </div>
+
+          <div class="install-help">
+            <p class="install-title">Fastest way to install <span class="install-badge">no warnings</span></p>
+            <ol class="install-steps">
+              <li>Press <kbd>⌘</kbd> <kbd>Space</kbd>, type <strong>Terminal</strong>, press Return</li>
+              <li>Paste this line, press Return, and Missting opens:</li>
+            </ol>
+            <div class="install-cmd">
+              <code id="install-cmd-text">curl -fsSL https://github.com/HaoSophareth/missting/releases/latest/download/Missting.zip -o /tmp/Missting.zip &amp;&amp; ditto -xk /tmp/Missting.zip /Applications &amp;&amp; xattr -cr /Applications/Missting.app &amp;&amp; open /Applications/Missting.app</code>
+              <button type="button" class="copy-btn" id="install-copy">Copy</button>
+            </div>
+            <p class="install-why">Missting is a free beta and not yet notarized by Apple, so double-clicking the normal download shows a false "damaged" warning. This one line installs the latest version straight from GitHub and opens it. After that, updates arrive automatically inside the app.</p>
+          </div>
         </div>
 
         <div class="preview-stack">

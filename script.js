@@ -324,3 +324,15 @@ document.querySelectorAll("[data-setting-toggle]").forEach((btn) => {
     check?.classList.toggle("is-checked");
   });
 });
+
+// Install command copy button
+const installCopy = document.getElementById("install-copy");
+if (installCopy) {
+  installCopy.addEventListener("click", () => {
+    const cmd = document.getElementById("install-cmd-text").textContent;
+    navigator.clipboard.writeText(cmd).then(() => {
+      installCopy.textContent = "Copied!";
+      setTimeout(() => { installCopy.textContent = "Copy"; }, 2000);
+    });
+  });
+}

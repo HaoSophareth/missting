@@ -800,3 +800,78 @@ h1 {
 }
 
 .notif-secondary-btn:hover { opacity: 0.75; }
+
+/* Install helper */
+.install-help {
+  margin-top: 28px;
+  max-width: 560px;
+}
+.install-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.install-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  background: rgba(51, 199, 107, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.install-steps {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.install-steps kbd {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text);
+}
+.install-cmd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.install-cmd code {
+  flex: 1;
+  font: 12px/1.5 "SF Mono", ui-monospace, Menlo, monospace;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.install-cmd code::-webkit-scrollbar {
+  display: none;
+}
+.copy-btn {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.copy-btn:hover {
+  filter: brightness(1.2);
+}
