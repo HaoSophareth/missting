@@ -41,7 +41,7 @@ final class CalendarManager: ObservableObject {
 
     private static let iso = ISO8601DateFormatter()
     private static let linkPattern = try! NSRegularExpression(
-        pattern: #"https://(meet\.google\.com|[\w.\-]*zoom\.us/j|teams\.microsoft\.com)/\S+"#
+        pattern: #"https://(?:meet\.google\.com/\S+|[\w.\-]*zoom\.us/j/\S+|teams\.microsoft\.com/\S+|calendly\.com/events/[\w-]+/(?:google_meet|zoom|microsoft_teams)\S*)"#
     )
     private static let anyURLPattern = try! NSRegularExpression(
         pattern: #"https://[^\s\"]+"#
