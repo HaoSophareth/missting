@@ -136,9 +136,9 @@ struct MeetingCardView: View {
     private var cardBackground: Color {
         if meeting.isMissed     { return Color(white: 0.07) }
         if meeting.isInProgress {
-            return hasJoined
-                ? Color(red: 0.07, green: 0.15, blue: 0.09)
-                : Color(red: 0.17, green: 0.1, blue: 0.1)
+            if hasJoined { return Color(red: 0.07, green: 0.15, blue: 0.09) }
+            if hasLink   { return Color(red: 0.17, green: 0.1, blue: 0.1) }
+            return Color(white: 0.1)   // no link = can't join, so no red "missing it" framing
         }
         return Color(white: 0.1)
     }
@@ -146,9 +146,9 @@ struct MeetingCardView: View {
     private var cardBorder: Color {
         if meeting.isMissed     { return Color(white: 0.1) }
         if meeting.isInProgress {
-            return hasJoined
-                ? Color(red: 0.2, green: 0.78, blue: 0.42).opacity(0.25)
-                : Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.25)
+            if hasJoined { return Color(red: 0.2, green: 0.78, blue: 0.42).opacity(0.25) }
+            if hasLink   { return Color(red: 1.0, green: 0.35, blue: 0.35).opacity(0.25) }
+            return Color(white: 0.14)
         }
         return Color(white: 0.14)
     }
@@ -162,11 +162,11 @@ struct MeetingCardView: View {
         } else if meeting.isInProgress {
             HStack(spacing: 4) {
                 Circle()
-                    .fill(hasJoined ? Color(red: 0.2, green: 0.78, blue: 0.42) : Color(red: 1.0, green: 0.35, blue: 0.35))
+                    .fill(inProgressStatusColor)
                     .frame(width: 5, height: 5)
                 Text("In progress · \(meeting.minsElapsed)m in · \(meeting.minsRemaining)m left")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(hasJoined ? Color(red: 0.2, green: 0.78, blue: 0.42) : Color(red: 1.0, green: 0.45, blue: 0.45))
+                    .foregroundColor(inProgressStatusColor)
             }
         } else if isScheduled {
             Text("Auto-joining in \(formatMins(max(minsUntilJoin, 0)))")
@@ -177,6 +177,12 @@ struct MeetingCardView: View {
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(Color(red: 0.655, green: 0.545, blue: 0.98))
         }
+    }
+
+    private var inProgressStatusColor: Color {
+        if hasJoined { return Color(red: 0.2, green: 0.78, blue: 0.42) }
+        if hasLink   { return Color(red: 1.0, green: 0.45, blue: 0.45) }
+        return Color(white: 0.45)   // no link = can't join, neutral rather than alarming
     }
 
     private var timeLabel: String {

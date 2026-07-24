@@ -41,10 +41,10 @@ final class CalendarManager: ObservableObject {
 
     private static let iso = ISO8601DateFormatter()
     private static let linkPattern = try! NSRegularExpression(
-        pattern: #"https://(?:meet\.google\.com/\S+|[\w.\-]*zoom\.us/j/\S+|teams\.microsoft\.com/\S+|calendly\.com/events/[\w-]+/(?:google_meet|zoom|microsoft_teams)\S*)"#
+        pattern: #"https://(?:meet\.google\.com/[^\s\"<]+|[\w.\-]*zoom\.us/j/[^\s\"<]+|teams\.microsoft\.com/[^\s\"<]+|calendly\.com/events/[\w-]+/(?:google_meet|zoom|microsoft_teams)[^\s\"<]*)"#
     )
     private static let anyURLPattern = try! NSRegularExpression(
-        pattern: #"https://[^\s\"]+"#
+        pattern: #"https://[^\s\"<]+"#
     )
     // Matches Minerva Academic calendar event URLs, captures the class ID at the end
     // e.g. https://forum.minerva.edu/app/courses/3797/sections/13018/classes/101243
@@ -98,7 +98,7 @@ final class CalendarManager: ObservableObject {
                 let result = try await fetchFromAllCalendars(token: token)
                 self.meetings = result.meetings
                 self.minervaCalendarConnected = result.hasMinerva
-                MenuBarManager.shared.updateStatusText(result.meetings)
+                DisplayCoordinator.shared.updateStatusText(result.meetings)
                 NotificationManager.shared.checkAndNotify(
                     meetings: self.meetings,
                     offsets: SettingsManager.shared.enabledOffsets
@@ -264,21 +264,34 @@ final class CalendarManager: ObservableObject {
             // 1. Explicit Google Meet link attached to the event
             if let s = e.hangoutLink { return URL(string: s) }
 
-            // 2. Any https URL in the location field (covers Preply, custom platforms, etc.)
+            // 2. Structured conference data (Zoom/Teams/etc. added via a Calendar
+            // conferencing add-on). Many of these events carry no plain-text link
+            // in location/description at all — the join URL only exists here.
+            if let entryPoints = e.conferenceData?.entryPoints {
+                let entryPoint = entryPoints.first { $0.entryPointType == "video" }
+                              ?? entryPoints.first { $0.entryPointType == "more" }
+                if let uri = entryPoint?.uri, let url = URL(string: uri) {
+                    return url
+                }
+            }
+
+            // 3. Any https URL in the location field (covers Preply, custom platforms, etc.)
             if let location = e.location, !location.isEmpty {
                 let range = NSRange(location.startIndex..., in: location)
                 if let match = Self.anyURLPattern.firstMatch(in: location, range: range),
                    let sr = Range(match.range, in: location) {
-                    return URL(string: String(location[sr]))
+                    return URL(string: Self.decodeHTMLEntities(String(location[sr])))
                 }
             }
 
-            // 3. Known video-call patterns anywhere in description
+            // 4. Known video-call patterns anywhere in description
+            // Google Calendar descriptions can contain raw HTML (e.g. Zoom's <a href="...">),
+            // so the extracted substring may still have entity-encoded characters like &amp;.
             let desc = e.description ?? ""
             let range = NSRange(desc.startIndex..., in: desc)
             guard let match = Self.linkPattern.firstMatch(in: desc, range: range),
                   let sr = Range(match.range, in: desc) else { return nil }
-            return URL(string: String(desc[sr]))
+            return URL(string: Self.decodeHTMLEntities(String(desc[sr])))
         }()
 
         guard let url = rawURL else { return nil }
@@ -292,6 +305,16 @@ final class CalendarManager: ObservableObject {
             return comps?.url ?? url
         }
         return url
+    }
+
+    private static func decodeHTMLEntities(_ s: String) -> String {
+        let entities: [(String, String)] = [
+            ("&amp;", "&"), ("&lt;", "<"), ("&gt;", ">"),
+            ("&quot;", "\""), ("&#39;", "'"), ("&apos;", "'")
+        ]
+        return entities.reduce(s) { result, pair in
+            result.replacingOccurrences(of: pair.0, with: pair.1)
+        }
     }
 
     private static func extractMinervaClassURL(from text: String) -> URL? {
@@ -347,7 +370,15 @@ private struct GCalEvent: Codable {
     let hangoutLink: String?
     let location: String?
     let description: String?
+    let conferenceData: ConferenceData?
     let attendees: [Attendee]?
+}
+private struct ConferenceData: Codable {
+    let entryPoints: [ConferenceEntryPoint]?
+}
+private struct ConferenceEntryPoint: Codable {
+    let entryPointType: String?  // "video", "phone", "sip", "more"
+    let uri: String?
 }
 private struct Attendee: Codable {
     let email: String?
