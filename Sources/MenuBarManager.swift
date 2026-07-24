@@ -74,6 +74,20 @@ final class MenuBarManager: NSObject {
         }
     }
 
+    /// Tears down the status item, popover, and timers so setup() can be
+    /// called again cleanly when the user switches to notch mode.
+    func teardown() {
+        stopMonitoring()
+        iconRefreshTimer?.invalidate(); iconRefreshTimer = nil
+        resizeTimer?.invalidate(); resizeTimer = nil
+        sizeObservation = nil
+        popover?.performClose(nil)
+        popover = nil
+        hostingController = nil
+        if let item = statusItem { NSStatusBar.system.removeStatusItem(item) }
+        statusItem = nil
+    }
+
     // MARK: - Icon state
 
     func updateStatusText(_ meetings: [Meeting]) {

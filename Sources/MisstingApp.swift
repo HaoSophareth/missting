@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         if #available(macOS 13.0, *) { try? SMAppService.mainApp.register() }
         NotificationManager.shared.requestAuthorization()
-        MenuBarManager.shared.setup()
+        DisplayCoordinator.shared.activate()
         CalendarManager.shared.startRefreshingIfSignedIn()
         _ = CallDetector.shared
 

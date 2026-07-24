@@ -14,6 +14,12 @@ struct FloatingAlertView: View {
     private var isScheduled: Bool { autoJoin.isScheduled(meeting.id) }
     private var mins: Int { meeting.minsUntilStart }
     private var hasJoined: Bool { joinedLocally || JoinTracker.shared.hasJoined(meeting) }
+    private var hasLink: Bool { meeting.joinURL != nil }
+    private var inProgressStatusColor: Color {
+        if hasJoined { return Color(red: 0.2, green: 0.78, blue: 0.42) }
+        if hasLink   { return Color(red: 1.0, green: 0.45, blue: 0.45) }
+        return Color(white: 0.5)   // no link = can't join, neutral rather than alarming
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -26,11 +32,11 @@ struct FloatingAlertView: View {
                 } else if meeting.isInProgress {
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(Color(red: 1.0, green: 0.35, blue: 0.35))
+                            .fill(inProgressStatusColor)
                             .frame(width: 6, height: 6)
                         Text("In progress · \(meeting.minsRemaining)m left")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(red: 1.0, green: 0.45, blue: 0.45))
+                            .foregroundColor(inProgressStatusColor)
                     }
                 } else {
                     Text(mins <= 1 ? "Starting now" : "In ~\(mins) min")

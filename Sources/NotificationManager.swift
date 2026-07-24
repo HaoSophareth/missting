@@ -34,7 +34,6 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
                 guard meeting.isInProgress,
                       !meeting.isPending,
                       !meeting.isDeclined,
-                      meeting.joinURL != nil,
                       !JoinTracker.shared.hasJoined(meeting),
                       !JoinTracker.shared.isDismissed(meeting),
                       !AutoJoinManager.shared.isScheduled(meeting.id) else { continue }
@@ -51,8 +50,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         var seenNow = shown
 
         for meeting in meetings {
-            // Never notify for pending, declined, or link-less events
-            if meeting.isPending || meeting.isDeclined || meeting.joinURL == nil { continue }
+            // Never notify for pending or declined events
+            if meeting.isPending || meeting.isDeclined { continue }
 
             // Skip if user already joined, dismissed the alert, or auto-join is scheduled
             if JoinTracker.shared.hasJoined(meeting)

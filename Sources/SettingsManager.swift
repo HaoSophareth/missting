@@ -3,6 +3,16 @@ import Foundation
 final class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
 
+    /// Where Missting's status + meeting list live.
+    enum DisplayMode: String, CaseIterable {
+        case notch
+        case menuBar
+    }
+
+    @Published var displayMode: DisplayMode {
+        didSet { UserDefaults.standard.set(displayMode.rawValue, forKey: "displayMode") }
+    }
+
     /// Minutes before a meeting to send a notification.
     @Published var notificationOffset: Int {
         didSet { UserDefaults.standard.set(notificationOffset, forKey: "notificationOffset") }
@@ -23,6 +33,8 @@ final class SettingsManager: ObservableObject {
 
     private init() {
         let d = UserDefaults.standard
+
+        displayMode = d.string(forKey: "displayMode").flatMap(DisplayMode.init(rawValue:)) ?? .menuBar
 
         notificationOffset = d.object(forKey: "notificationOffset") != nil ? d.integer(forKey: "notificationOffset") : 10
 
