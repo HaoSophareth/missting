@@ -46,7 +46,7 @@ struct FloatingAlertView: View {
 
                 Spacer()
 
-                if meeting.joinURL != nil && !autoJoinReminderMode {
+                if meeting.joinURL != nil {
                     if meeting.isInProgress && hasJoined {
                         Button("Joined") { onJoin() }
                             .buttonStyle(FloatJoinedStyle())

@@ -35,13 +35,17 @@ final class FloatingAlertManager {
             rootView: FloatingAlertView(
                 meeting: meeting,
                 onJoin: { [weak self] in
+                    if AutoJoinManager.shared.isScheduled(meeting.id) { AutoJoinManager.shared.cancel(meeting.id) }
                     if let url = meeting.joinURL { NSWorkspace.shared.open(url) }
                     JoinTracker.shared.markJoined(meeting)
                     self?.dismiss(meetingId: meeting.id)
                 },
                 onDismiss: { [weak self] in
-                    // Explicit X = "stop alerting me about this meeting".
+                    // Explicit X = "stop alerting me about this meeting" — same as Cancel:
+                    // if an auto-join was scheduled, closing the alert stops it too, so X
+                    // never leaves a meeting silently auto-joining after the user closed it.
                     // The 30s auto-timeout below calls dismiss() directly and does NOT count.
+                    if AutoJoinManager.shared.isScheduled(meeting.id) { AutoJoinManager.shared.cancelManually(meeting.id) }
                     JoinTracker.shared.markDismissed(meeting)
                     self?.dismiss(meetingId: meeting.id)
                 },
