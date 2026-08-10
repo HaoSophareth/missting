@@ -66,7 +66,7 @@
       <a href="/" class="back">← Back</a>
 
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated May 13, 2026</p>
+      <p class="updated">Last updated August 10, 2026</p>
 
       <h2>What we access</h2>
       <p>Missting connects to your Google Calendar to read your upcoming events. We access event titles, start and end times, and video conference links (such as Google Meet URLs).</p>
@@ -77,8 +77,11 @@
       <h2>What we don't do</h2>
       <p>We do not store your calendar data on any server. Everything is fetched directly from Google's API and lives only on your device. We do not sell, share, or transmit your data to any third party.</p>
 
+      <h2>How your data is protected</h2>
+      <p>All communication with Google's API happens over HTTPS/TLS, so your calendar data is encrypted in transit. Your OAuth access and refresh tokens — the credentials that let Missting read your calendar — are stored in the macOS Keychain, which encrypts them at rest and restricts access to Missting itself, not in a plain settings file. Meeting details (titles, times, join links) are held only in memory and in macOS's standard app storage on your device; they are never uploaded anywhere. Revoking access or deleting the app removes this data.</p>
+
       <h2>Authentication</h2>
-      <p>Missting uses OAuth 2.0 with PKCE to connect your Google account. No passwords are ever stored. You can revoke access at any time from your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google account settings</a>.</p>
+      <p>Missting uses OAuth 2.0 with PKCE to connect your Google account. No passwords are ever stored. You can revoke access at any time from your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google account settings</a>, or by signing out inside Missting, which deletes the stored tokens from the Keychain immediately.</p>
 
       <h2>Contact</h2>
       <p>Questions? Email <a href="mailto:haosophareth070@gmail.com">haosophareth070@gmail.com</a>.</p>
