@@ -8,8 +8,17 @@ struct Meeting: Identifiable, Equatable {
     let joinURL: URL?
     let calendarEmail: String?
     let calendarId: String?
+    /// RFC5545 UID — identical across every calendar/account copy of the same real
+    /// event (organizer's, each attendee's, any calendar it's duplicated onto), unlike
+    /// `id` which Google mints per-calendar. Used to detect and merge duplicate copies.
+    let iCalUID: String?
     /// "accepted", "tentative", "needsAction", "declined"
     let responseStatus: String
+
+    /// Identity for cross-calendar dedup: same real event + same occurrence. Paired
+    /// with startDate because a recurring series shares one iCalUID across all its
+    /// instances — without the date, different days of the same series would collide.
+    var dedupKey: String { "\(iCalUID ?? id)|\(Int(startDate.timeIntervalSince1970))" }
 
     var isPending: Bool     { responseStatus == "needsAction" }
     var isDeclined: Bool    { responseStatus == "declined" }
@@ -98,7 +107,7 @@ final class CalendarManager: ObservableObject {
                 let result = try await fetchFromAllCalendars(token: token)
                 self.meetings = result.meetings
                 self.minervaCalendarConnected = result.hasMinerva
-                DisplayCoordinator.shared.updateStatusText(result.meetings)
+                MenuBarManager.shared.updateStatusText(result.meetings)
                 NotificationManager.shared.checkAndNotify(
                     meetings: self.meetings,
                     offsets: SettingsManager.shared.enabledOffsets
@@ -135,7 +144,7 @@ final class CalendarManager: ObservableObject {
             }
             for try await meetings in group {
                 for meeting in meetings {
-                    allCopies[meeting.id, default: []].append(meeting)
+                    allCopies[meeting.dedupKey, default: []].append(meeting)
                 }
             }
         }
@@ -143,11 +152,20 @@ final class CalendarManager: ObservableObject {
         // Merge: prefer the copy where self is explicitly an attendee.
         // If ANY copy is pending/declined, respect that over a defaulted "accepted".
         for (_, copies) in allCopies {
-            let selfCopy = copies.first { $0.calendarEmail != nil && $0.responseStatus != "accepted" }
-                        ?? copies.first { $0.calendarEmail != nil }
-                        ?? copies[0]
-            allMeetings.append(selfCopy)
+            allMeetings.append(Self.pickRepresentative(copies))
         }
+
+        // Second pass: some calendars (e.g. a booking-page alias calendar) create a
+        // genuinely separate event resource for the same real meeting instead of
+        // propagating one invite, so it carries its own iCalUID and slips past the
+        // pass above. Collapse those too when title + start + end all match exactly —
+        // that combination essentially never happens for two truly unrelated meetings.
+        var byContent: [String: [Meeting]] = [:]
+        for meeting in allMeetings {
+            let key = "\(meeting.title)|\(Int(meeting.startDate.timeIntervalSince1970))|\(Int(meeting.endDate.timeIntervalSince1970))"
+            byContent[key, default: []].append(meeting)
+        }
+        allMeetings = byContent.values.map(Self.pickRepresentative)
 
         // Check for Minerva: calendar present in list OR events found in window.
         // Using calendar name so it shows Connected even when there are no classes today/tomorrow.
@@ -160,6 +178,15 @@ final class CalendarManager: ObservableObject {
             .sorted { $0.startDate < $1.startDate }
 
         return (filtered, hasMinerva)
+    }
+
+    /// Picks which copy of a duplicated event represents it: prefer the copy where
+    /// self is explicitly an attendee, so a pending/declined status on any copy
+    /// isn't shadowed by a defaulted "accepted" from a calendar with no attendee data.
+    private static func pickRepresentative(_ copies: [Meeting]) -> Meeting {
+        copies.first { $0.calendarEmail != nil && $0.responseStatus != "accepted" }
+            ?? copies.first { $0.calendarEmail != nil }
+            ?? copies[0]
     }
 
     private func fetchCalendarList(token: String) async throws -> [CalendarInfo] {
@@ -249,6 +276,7 @@ final class CalendarManager: ObservableObject {
                        joinURL:        joinURL,
                        calendarEmail:  selfEmail,
                        calendarId:     calendarId,
+                       iCalUID:        e.iCalUID,
                        responseStatus: responseStatus)
     }
 
@@ -364,6 +392,7 @@ private struct CalendarItem: Codable {
 private struct EventsResponse: Codable { let items: [GCalEvent]? }
 private struct GCalEvent: Codable {
     let id: String?
+    let iCalUID: String?
     let summary: String?
     let start: EventDateTime?
     let end: EventDateTime?
