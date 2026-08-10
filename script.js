@@ -336,3 +336,29 @@ if (installCopy) {
     });
   });
 }
+
+// Privacy policy popup — content is embedded directly in the modal (mirrors
+// privacy.html, which stays the standalone page at /privacy for direct links
+// and is what's registered as the privacy policy URL with Google), so opening
+// it is just a visibility toggle with nothing to fetch or wait on.
+const privacyLink = document.getElementById("privacy-link");
+const privacyOverlay = document.getElementById("privacy-overlay");
+const privacyClose = document.getElementById("privacy-close");
+
+function openPrivacy(e) {
+  e.preventDefault();
+  privacyOverlay.hidden = false;
+}
+
+function closePrivacy() {
+  privacyOverlay.hidden = true;
+}
+
+privacyLink?.addEventListener("click", openPrivacy);
+privacyClose?.addEventListener("click", closePrivacy);
+privacyOverlay?.addEventListener("click", (e) => {
+  if (e.target === privacyOverlay) closePrivacy();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !privacyOverlay.hidden) closePrivacy();
+});
