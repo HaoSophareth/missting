@@ -346,6 +346,10 @@ const privacyOverlay = document.getElementById("privacy-overlay");
 const privacyClose = document.getElementById("privacy-close");
 
 function openPrivacy(e) {
+  // Let cmd/ctrl/middle-click behave normally and open the real /privacy
+  // page in its own tab — only a plain left-click shows the popup, so
+  // there's still a way to reach the standalone page separately.
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
   e.preventDefault();
   privacyOverlay.hidden = false;
 }
