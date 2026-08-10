@@ -16,7 +16,8 @@ final class NotificationManager: NSObject {
     func alertInProgressMeetings(_ meetings: [Meeting]) {
         DispatchQueue.main.async {
             for meeting in meetings {
-                guard meeting.isInProgress,
+                guard meeting.joinURL != nil,
+                      meeting.isInProgress,
                       !meeting.isPending,
                       !meeting.isDeclined,
                       !JoinTracker.shared.hasJoined(meeting),
@@ -35,6 +36,9 @@ final class NotificationManager: NSObject {
         var seenNow = shown
 
         for meeting in meetings {
+            // Nothing to join, so nothing to alert about
+            if meeting.joinURL == nil { continue }
+
             // Never notify for pending or declined events
             if meeting.isPending || meeting.isDeclined { continue }
 
