@@ -1,7 +1,6 @@
 # Missting
 
 A menu bar app that notifies and auto-launches Google Calendar links so you're always early.
-
 See what's coming up, get a nudge before it starts, and auto-join at exactly the right moment.
 
 ---
