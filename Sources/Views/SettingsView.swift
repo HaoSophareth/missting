@@ -8,31 +8,6 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
-            // MARK: - Appearance
-            HStack {
-                Text("Live in")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white)
-                Spacer()
-                HStack(spacing: 4) {
-                    modeButton(title: "Menu Bar", mode: .menuBar)
-                    modeButton(title: "Notch", mode: .notch)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, settings.displayMode == .notch && !NotchManager.hasNotch ? 4 : 12)
-
-            if settings.displayMode == .notch && !NotchManager.hasNotch {
-                Text("This Mac doesn't have a notch — using the menu bar instead.")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(white: 0.4))
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-            }
-
-            Divider().background(Color(white: 0.12))
-
             // MARK: - Notifications
             HStack {
                 Text("Notify before meetings")
@@ -42,7 +17,8 @@ struct SettingsView: View {
                 MinuteField(value: $settings.notificationOffset)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
 
             Divider().background(Color(white: 0.12))
 
@@ -65,9 +41,16 @@ struct SettingsView: View {
                 CalendarManager.shared.fetchMeetings()
             } label: {
                 HStack(spacing: 10) {
-                    Text("Show all events")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Show events without a link")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                        Text(settings.showAllEvents
+                             ? "All events are shown, including ones you can't join."
+                             : "Only events with a join link are shown.")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(white: 0.4))
+                    }
                     Spacer()
                     Image(systemName: settings.showAllEvents ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 16))
@@ -186,23 +169,6 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
-
-    private func modeButton(title: String, mode: SettingsManager.DisplayMode) -> some View {
-        let isSelected = settings.displayMode == mode
-        return Button {
-            settings.displayMode = mode
-            DisplayCoordinator.shared.switchIfNeeded()
-        } label: {
-            Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(isSelected ? .white : Color(white: 0.5))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(isSelected ? Color(red: 0.31, green: 0.56, blue: 0.97) : Color(white: 0.15))
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
 
     private func colorFromHex(_ hex: String?) -> Color? {
         guard let hex = hex else { return nil }
