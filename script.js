@@ -337,32 +337,38 @@ if (installCopy) {
   });
 }
 
-// Privacy policy popup — content is embedded directly in the modal (mirrors
-// privacy.html, which stays the standalone page at /privacy for direct links
-// and is what's registered as the privacy policy URL with Google), so opening
-// it is just a visibility toggle with nothing to fetch or wait on.
-const privacyLink = document.getElementById("privacy-link");
-const privacyOverlay = document.getElementById("privacy-overlay");
-const privacyClose = document.getElementById("privacy-close");
+// Privacy/Terms popups — content is embedded directly in the modal (mirrors
+// privacy.html/terms.html, which stay standalone pages for direct links and
+// are what's registered as the privacy policy URL with Google), so opening
+// is just a visibility toggle with nothing to fetch or wait on.
+function setupModalLink(linkId, overlayId, closeId) {
+  const link = document.getElementById(linkId);
+  const overlay = document.getElementById(overlayId);
+  const close = document.getElementById(closeId);
+  if (!link || !overlay || !close) return;
 
-function openPrivacy(e) {
-  // Let cmd/ctrl/middle-click behave normally and open the real /privacy
-  // page in its own tab — only a plain left-click shows the popup, so
-  // there's still a way to reach the standalone page separately.
-  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-  e.preventDefault();
-  privacyOverlay.hidden = false;
+  function open(e) {
+    // Let cmd/ctrl/middle-click behave normally and open the real standalone
+    // page in its own tab — only a plain left-click shows the popup, so
+    // there's still a way to reach that page separately.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    overlay.hidden = false;
+  }
+
+  function dismiss() {
+    overlay.hidden = true;
+  }
+
+  link.addEventListener("click", open);
+  close.addEventListener("click", dismiss);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) dismiss();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay.hidden) dismiss();
+  });
 }
 
-function closePrivacy() {
-  privacyOverlay.hidden = true;
-}
-
-privacyLink?.addEventListener("click", openPrivacy);
-privacyClose?.addEventListener("click", closePrivacy);
-privacyOverlay?.addEventListener("click", (e) => {
-  if (e.target === privacyOverlay) closePrivacy();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !privacyOverlay.hidden) closePrivacy();
-});
+setupModalLink("privacy-link", "privacy-overlay", "privacy-close");
+setupModalLink("terms-link", "terms-overlay", "terms-close");
