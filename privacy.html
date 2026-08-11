@@ -15,47 +15,64 @@
         min-height: 100vh;
         font-family: "Inter", sans-serif;
         color: #f5f5f7;
-        background: #09090a;
+        background: linear-gradient(180deg, #09090a 0%, #050505 100%);
         display: flex;
+        align-items: center;
         justify-content: center;
-        padding: 64px 24px;
+        padding: 24px;
       }
       .wrap {
+        position: relative;
         width: 100%;
-        max-width: 860px;
+        max-width: 1040px;
+        max-height: 94vh;
+        overflow-y: auto;
+        background: #0f0f10;
+        border: 1px solid #232326;
+        border-radius: 16px;
+        box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+        padding: 44px 64px 44px;
       }
       .back {
-        display: inline-block;
-        font-size: 0.86rem;
-        font-weight: 500;
-        color: #4f8ff7;
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #161618;
+        color: #8a8a92;
         text-decoration: none;
-        margin-bottom: 40px;
-        transition: opacity 160ms ease;
+        font-size: 1rem;
+        line-height: 1;
+        transition: color 160ms ease, background 160ms ease;
       }
-      .back:hover { opacity: 0.75; }
+      .back:hover { color: #f5f5f7; background: #232326; }
       h1 {
         margin: 0 0 6px;
-        font-size: 2rem;
+        font-size: 1.8rem;
         font-weight: 700;
         letter-spacing: -0.02em;
       }
       .updated {
-        font-size: 0.88rem;
-        color: #666;
-        margin: 0 0 40px;
+        font-size: 0.84rem;
+        color: #8a8a92;
+        margin: 0 0 22px;
       }
       h2 {
-        font-size: 1.1rem;
+        font-size: 1.02rem;
         font-weight: 600;
         color: #f5f5f7;
-        margin: 36px 0 10px;
+        margin: 18px 0 6px;
       }
       p {
-        font-size: 0.96rem;
-        line-height: 1.8;
-        color: #999;
-        margin: 0 0 14px;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        color: #8a8a92;
+        margin: 0 0 8px;
       }
       a { color: #4f8ff7; text-decoration: none; }
       a:hover { text-decoration: underline; }
@@ -63,7 +80,7 @@
   </head>
   <body>
     <div class="wrap">
-      <a href="/" class="back">← Back</a>
+      <a href="/" class="back" aria-label="Close">×</a>
 
       <h1>Privacy Policy</h1>
       <p class="updated">Last updated August 10, 2026</p>
@@ -86,5 +103,16 @@
       <h2>Contact</h2>
       <p>Questions? Email <a href="mailto:haosophareth070@gmail.com">haosophareth070@gmail.com</a>.</p>
     </div>
+    <script>
+      // Clicking the dark backdrop (not the card) is a stand-in for "click
+      // outside the popup" — reads .back's href live so it always matches
+      // wherever that link actually points (this file gets copied and its
+      // "/" home link rewritten to "/missting" when synced to phareth.com).
+      document.body.addEventListener("click", function (e) {
+        if (e.target === document.body) {
+          location.href = document.querySelector(".back").href;
+        }
+      });
+    </script>
   </body>
 </html>
