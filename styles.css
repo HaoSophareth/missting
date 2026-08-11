@@ -906,17 +906,6 @@ h1 {
   font-weight: 600;
   color: var(--text);
   margin: 0 0 10px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.install-badge {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--green);
-  background: rgba(51, 199, 107, 0.12);
-  padding: 2px 8px;
-  border-radius: 999px;
 }
 .install-steps {
   margin: 0 0 10px;
