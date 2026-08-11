@@ -77,6 +77,101 @@ a:focus-visible {
   color: rgba(255, 255, 255, 0.6);
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 10000;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 1040px;
+  max-height: 94vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 44px 64px 44px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.modal-close:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+.modal-body h1 {
+  margin: 0 0 6px;
+  max-width: none;
+  font-size: 1.8rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: wrap;
+  color: var(--text);
+}
+
+.modal-body .updated {
+  font-size: 0.84rem;
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+
+.modal-body h2 {
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 18px 0 6px;
+}
+
+.modal-body p {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.modal-body a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+.modal-body a:hover {
+  text-decoration: underline;
+}
+
+.modal-loading {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
