@@ -914,7 +914,7 @@ h1 {
 
 /* Install helper */
 .install-help {
-  margin-top: 8px;
+  margin-top: 32px;
   max-width: 560px;
 }
 .install-lede {
