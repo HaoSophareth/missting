@@ -87,6 +87,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.title = "Enjoying Missting?"
         panel.isFloatingPanel = true
         panel.level = .floating
+        // Without this, the panel simply never renders at all (not just
+        // hidden behind) if the frontmost app is in a fullscreen Space —
+        // it's created on the current Space but can't follow into one.
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.appearance = NSAppearance(named: .darkAqua)
 
@@ -125,6 +129,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.title = "Welcome to Missting"
         panel.isFloatingPanel = true
         panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.appearance = NSAppearance(named: .darkAqua)
 
