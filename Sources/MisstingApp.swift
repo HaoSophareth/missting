@@ -155,27 +155,32 @@ private struct WelcomeView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             if let img = AppResources.sunflower() {
                 Image(nsImage: img)
                     .resizable()
-                    .frame(width: 56, height: 56)
+                    .frame(width: 48, height: 48)
             }
             Text("Missting is installed!")
                 .font(.headline)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-            Text("Click the sunflower icon at the top of your screen, then Sign in with Google to see your meetings.\n\nIf it's hidden behind your MacBook's notch (common with lots of menu bar apps open), hold ⌘ and drag it next to icons like Wi-Fi or Bluetooth — once you drop it there, it stays put for good.")
-                .font(.subheadline)
-                .foregroundColor(Color(white: 0.5))
-                .multilineTextAlignment(.center)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Click the sunflower icon, then **Sign in with Google**.")
+                    .foregroundColor(Color(white: 0.75))
+                Text("Icon hidden? Hold ⌘ and drag it next to Wi-Fi or Bluetooth — it'll stay there for good.")
+                    .foregroundColor(Color(white: 0.45))
+            }
+            .font(.system(size: 12.5))
+            .fixedSize(horizontal: false, vertical: true)
+
             Button("Got it!") { onDismiss() }
                 .buttonStyle(PrimaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
-                .padding(.top, 4)
         }
         .padding(24)
-        .frame(width: 340)
+        .frame(width: 320)
         .background(Color(white: 0.06))
     }
 }
