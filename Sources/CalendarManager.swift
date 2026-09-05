@@ -116,7 +116,6 @@ final class CalendarManager: ObservableObject {
                 let result = try await fetchFromAllCalendars(token: token)
                 self.meetings = result.meetings
                 self.minervaCalendarConnected = result.hasMinerva
-                MenuBarManager.shared.updateStatusText(result.meetings)
                 NotificationManager.shared.checkAndNotify(
                     meetings: self.meetings,
                     offsets: SettingsManager.shared.enabledOffsets

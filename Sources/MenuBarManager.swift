@@ -12,17 +12,13 @@ final class MenuBarManager: NSObject {
     private var sizeObservation: NSKeyValueObservation?
     private var pendingSize: CGSize = .zero
     private var resizeTimer: Timer?
-    private var iconRefreshTimer: Timer?
-    private var latestMeetings: [Meeting] = []
 
     private var colorIcon: NSImage?
-    private var grayIcon: NSImage?
 
     private override init() {}
 
     func setup() {
-        colorIcon = loadMenuBarIcon(gray: false)
-        grayIcon  = loadMenuBarIcon(gray: true)
+        colorIcon = loadMenuBarIcon()
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         // Persists wherever the user Cmd-drags the icon to across launches —
@@ -38,11 +34,6 @@ final class MenuBarManager: NSObject {
             button.target = self
         }
         statusItem = item
-
-        iconRefreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.applyStatusIcon(self.latestMeetings)
-        }
 
         let pop = NSPopover()
         pop.behavior = .applicationDefined
@@ -76,37 +67,6 @@ final class MenuBarManager: NSObject {
                 self?.scheduleResize(to: size)
             }
         }
-    }
-
-    // MARK: - Icon state
-
-    func updateStatusText(_ meetings: [Meeting]) {
-        latestMeetings = meetings
-        applyStatusIcon(meetings)
-    }
-
-    private func applyStatusIcon(_ meetings: [Meeting]) {
-        guard let button = statusItem?.button else { return }
-        let now = Date()
-        let cal = Calendar.current
-
-        let hasMeeting: Bool
-        if meetings.contains(where: { $0.isInProgress && $0.joinURL != nil }) {
-            hasMeeting = true
-        } else if CallDetector.shared.isInCall {
-            hasMeeting = true
-        } else {
-            let endOfToday    = cal.date(bySettingHour: 23, minute: 59, second: 59, of: now)!
-            let sixAmTomorrow = cal.date(bySettingHour: 6, minute: 0, second: 0,
-                                         of: cal.date(byAdding: .day, value: 1, to: now)!)!
-            hasMeeting = meetings.contains {
-                $0.joinURL != nil && $0.startDate > now &&
-                ($0.startDate <= endOfToday || $0.startDate < sixAmTomorrow)
-            }
-        }
-
-        button.image = hasMeeting ? colorIcon : grayIcon
-        button.title = ""
     }
 
     // MARK: - Popover
@@ -209,8 +169,8 @@ final class MenuBarManager: NSObject {
         }
     }
 
-    private func loadMenuBarIcon(gray: Bool) -> NSImage? {
-        guard let source = gray ? AppResources.sunflowerGray() : AppResources.sunflower() else { return nil }
+    private func loadMenuBarIcon() -> NSImage? {
+        guard let source = AppResources.sunflower() else { return nil }
         let iconSize: CGFloat = 18
         let size = NSSize(width: iconSize, height: iconSize)
 
