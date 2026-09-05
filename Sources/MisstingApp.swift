@@ -35,18 +35,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AutoJoinManager.shared.checkInProgressMeetings()
         }
 
-        // On first ever launch, show a centered welcome panel so it's
-        // visible even if the menu bar icon is hidden behind the notch
         if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
             UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
             UserDefaults.standard.set(Date(), forKey: "firstLaunchDate")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-                self?.showWelcomePanel()
-            }
         } else if UserDefaults.standard.object(forKey: "firstLaunchDate") == nil {
             // Existing install from before firstLaunchDate existed — back-fill it now
             // so the star prompt still fires (7 days out) instead of never at all.
             UserDefaults.standard.set(Date(), forKey: "firstLaunchDate")
+        }
+
+        // Show the centered guidance panel on every launch until the user has
+        // actually signed in — not just the very first launch ever. Re-running
+        // the install script relaunches the app the same way a first install
+        // does, so without this, anyone who dismissed the panel (or ran the
+        // installer again) without connecting an account gets zero on-screen
+        // confirmation that anything happened, with no idea what to do next —
+        // especially since the menu bar icon itself can be hidden by the notch.
+        if !GoogleAuthManager.shared.isSignedIn {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                self?.showWelcomePanel()
+            }
         }
 
         maybeShowStarPrompt()
@@ -148,11 +156,11 @@ private struct WelcomeView: View {
                     .resizable()
                     .frame(width: 56, height: 56)
             }
-            Text("Missting is in your menu bar")
+            Text("Missting is installed!")
                 .font(.headline)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-            Text("Look for the sunflower icon at the top of your screen to view and join meetings.\n\nIf it's hidden behind your MacBook's notch (common with lots of menu bar apps open), hold ⌘ and drag it next to icons like Wi-Fi or Bluetooth — once you drop it there, it stays put for good.")
+            Text("Click the sunflower icon at the top of your screen, then Sign in with Google to see your meetings.\n\nIf it's hidden behind your MacBook's notch (common with lots of menu bar apps open), hold ⌘ and drag it next to icons like Wi-Fi or Bluetooth — once you drop it there, it stays put for good.")
                 .font(.subheadline)
                 .foregroundColor(Color(white: 0.5))
                 .multilineTextAlignment(.center)

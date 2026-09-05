@@ -30,7 +30,7 @@ final class MenuBarManager: NSObject {
         // newly-hidden icon (crowded menu bar, notch) can't be fixed for good.
         item.autosaveName = "MisstingStatusItem"
         if let button = item.button {
-            button.image = grayIcon ?? NSImage(systemSymbolName: "alarm", accessibilityDescription: "Missting")
+            button.image = colorIcon ?? NSImage(systemSymbolName: "alarm", accessibilityDescription: "Missting")
             button.imageScaling = .scaleProportionallyDown
             button.title = ""
             button.action = #selector(handleClick(_:))

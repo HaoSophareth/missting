@@ -7,9 +7,11 @@ struct MeetingListView: View {
 
     @State private var dismissed: Set<String> = []
     @State private var showSettings = false
+    @State private var isFirstTimeSetup = false
     @State private var signingIn = false
     @State private var signInError: String?
     @State private var dayOffset = 0
+    @State private var hasAutoAdvancedDay = false
 
     private var accepted: [Meeting] {
         calendar.acceptedMeetings(daysFromToday: dayOffset)
@@ -66,10 +68,40 @@ struct MeetingListView: View {
             CalendarManager.shared.startRefreshingIfSignedIn()
         }
         .onChange(of: auth.isSignedIn) { signedIn in
-            if signedIn { CalendarManager.shared.startRefreshingIfSignedIn() }
+            if signedIn {
+                CalendarManager.shared.startRefreshingIfSignedIn()
+                // Most people never think to open Settings on their own, so
+                // the first time anyone connects an account, walk them there
+                // directly instead of leaving Calendars/Minerva/timing
+                // buried behind a small gear icon they may never notice.
+                if !UserDefaults.standard.bool(forKey: "hasShownInitialSetup") {
+                    UserDefaults.standard.set(true, forKey: "hasShownInitialSetup")
+                    isFirstTimeSetup = true
+                    showSettings = true
+                }
+            }
         }
         .onChange(of: calendar.meetings) { meetings in
             NotificationManager.shared.checkAndNotify(meetings: meetings, offsets: settings.enabledOffsets)
+            advanceToFirstMeetingDayIfNeeded()
+        }
+    }
+
+    /// Runs once per session, right after the first real fetch lands: if
+    /// today has nothing, jump straight to the next day that actually has a
+    /// meeting instead of leaving a first-time (or simply schedule-free)
+    /// user staring at an empty "No meetings" today with no obvious next step.
+    private func advanceToFirstMeetingDayIfNeeded() {
+        guard !hasAutoAdvancedDay, dayOffset == 0 else { return }
+        hasAutoAdvancedDay = true
+        guard calendar.acceptedMeetings(daysFromToday: 0).isEmpty,
+              calendar.pendingMeetings(daysFromToday: 0).isEmpty else { return }
+        for offset in 1...6 {
+            if !calendar.acceptedMeetings(daysFromToday: offset).isEmpty
+                || !calendar.pendingMeetings(daysFromToday: offset).isEmpty {
+                dayOffset = offset
+                return
+            }
         }
     }
 
@@ -78,12 +110,15 @@ struct MeetingListView: View {
     private var settingsPanel: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Settings")
+                Text(isFirstTimeSetup ? "Quick setup" : "Settings")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
                 Spacer()
                 Button {
-                    withAnimation(.easeInOut(duration: 0.15)) { showSettings = false }
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        showSettings = false
+                        isFirstTimeSetup = false
+                    }
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .medium))
@@ -96,7 +131,16 @@ struct MeetingListView: View {
             }
             .padding(.horizontal, 14)
             .padding(.top, 14)
-            .padding(.bottom, 8)
+            .padding(.bottom, isFirstTimeSetup ? 4 : 8)
+
+            if isFirstTimeSetup {
+                Text("You're connected! Pick your notification timing and which calendars to include below — you can always come back here later from the ⚙️ icon.")
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(white: 0.45))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 10)
+            }
 
             Divider().background(Color(white: 0.12))
             SettingsView()
