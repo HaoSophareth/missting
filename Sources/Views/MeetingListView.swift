@@ -13,6 +13,7 @@ struct MeetingListView: View {
     @State private var signInError: String?
     @State private var dayOffset = 0
     @State private var hasAutoAdvancedDay = false
+    @State private var menuBarIconConfirmed = false
 
     private var accepted: [Meeting] {
         calendar.acceptedMeetings(daysFromToday: dayOffset)
@@ -123,10 +124,15 @@ struct MeetingListView: View {
 
             Divider().background(Color(white: 0.12)).padding(.horizontal, 16)
 
+            // Whether the icon actually got dragged isn't something we can
+            // detect, so this is a manual, tappable confirmation rather than
+            // an automatic status — same pattern as any real checklist.
             checklistRow(
-                done: false,
+                done: menuBarIconConfirmed,
                 title: "Menu bar icon",
-                subtitle: "Hold ⌘ and drag it next to Wi-Fi or Bluetooth so it never gets hidden."
+                subtitle: "Hold ⌘ and drag it next to Wi-Fi or Bluetooth so it never gets hidden.",
+                onToggle: { menuBarIconConfirmed.toggle() },
+                showDragHint: true
             )
             .padding(.bottom, 8)
 
@@ -144,12 +150,23 @@ struct MeetingListView: View {
         .frame(width: 300)
     }
 
-    private func checklistRow(done: Bool, title: String, subtitle: String) -> some View {
+    private func checklistRow(
+        done: Bool,
+        title: String,
+        subtitle: String,
+        onToggle: (() -> Void)? = nil,
+        showDragHint: Bool = false
+    ) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 15))
-                .foregroundColor(done ? Color(red: 0.2, green: 0.78, blue: 0.42) : Color(white: 0.3))
-                .padding(.top, 1)
+            Group {
+                if let onToggle {
+                    Button(action: onToggle) { checklistIcon(done: done) }
+                        .buttonStyle(.plain)
+                } else {
+                    checklistIcon(done: done)
+                }
+            }
+            .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
@@ -158,10 +175,20 @@ struct MeetingListView: View {
                     .font(.system(size: 11))
                     .foregroundColor(Color(white: 0.45))
                     .fixedSize(horizontal: false, vertical: true)
+                if showDragHint {
+                    DragHintView()
+                        .padding(.top, 4)
+                }
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    private func checklistIcon(done: Bool) -> some View {
+        Image(systemName: done ? "checkmark.circle.fill" : "circle")
+            .font(.system(size: 15))
+            .foregroundColor(done ? Color(red: 0.2, green: 0.78, blue: 0.42) : Color(white: 0.3))
     }
 
     private var settingsPanel: some View {
@@ -405,5 +432,38 @@ struct MeetingListView: View {
         }
         .padding(.vertical, 28)
         .padding(.horizontal, 16)
+    }
+}
+
+/// A tiny looping animation (no video asset — just SwiftUI) that reinforces
+/// the drag instruction: the icon slides back and forth along a track.
+private struct DragHintView: View {
+    @State private var animate = false
+    private let travel: CGFloat = 64
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Capsule()
+                .fill(Color(white: 0.13))
+                .frame(width: travel + 24, height: 20)
+            Group {
+                if let img = AppResources.sunflower() {
+                    Image(nsImage: img)
+                        .resizable()
+                        .frame(width: 14, height: 14)
+                } else {
+                    Circle()
+                        .fill(Color(red: 0.31, green: 0.56, blue: 0.97))
+                        .frame(width: 14, height: 14)
+                }
+            }
+            .padding(.leading, 4)
+            .offset(x: animate ? travel : 0)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                animate = true
+            }
+        }
     }
 }

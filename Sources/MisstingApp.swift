@@ -4,7 +4,6 @@ import ServiceManagement
 import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var welcomePanel: NSPanel?
     private var starPanel: NSPanel?
     private var menuBarTipPanel: NSPanel?
 
@@ -45,16 +44,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             UserDefaults.standard.set(Date(), forKey: "firstLaunchDate")
         }
 
-        // Show the centered guidance panel on every launch until the user has
+        // Open the real popover directly on every launch until the user has
         // actually signed in — not just the very first launch ever. Re-running
         // the install script relaunches the app the same way a first install
-        // does, so without this, anyone who dismissed the panel (or ran the
-        // installer again) without connecting an account gets zero on-screen
-        // confirmation that anything happened, with no idea what to do next —
-        // especially since the menu bar icon itself can be hidden by the notch.
+        // does, so without this, anyone who dismissed it (or ran the installer
+        // again) without connecting an account gets zero on-screen confirmation
+        // that anything happened, with no idea what to do next — especially
+        // since the menu bar icon itself can be hidden by the notch. The
+        // popover's own "Connect Google Calendar" screen already says
+        // everything a separate welcome panel would, so skip the redundant step.
         if !GoogleAuthManager.shared.isSignedIn {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-                self?.showWelcomePanel()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                MenuBarManager.shared.showPopover()
             }
         }
 
@@ -172,82 +173,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         starPanel = panel
     }
 
-    // MARK: - Welcome panel
-
-    private func showWelcomePanel() {
-        let width: CGFloat = 360
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: width, height: 1),
-            styleMask: [.nonactivatingPanel, .borderless],
-            backing: .buffered,
-            defer: false
-        )
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.isReleasedWhenClosed = false
-        panel.appearance = NSAppearance(named: .darkAqua)
-
-        let hosting = NSHostingView(rootView: WelcomeView {
-            panel.close()
-            self.welcomePanel = nil
-            // Open the real popover right away instead of leaving the user to
-            // find and click the menu bar icon themselves after dismissing.
-            MenuBarManager.shared.showPopover()
-        })
-        hosting.frame = NSRect(x: 0, y: 0, width: width, height: 200)
-        let fittingHeight = hosting.fittingSize.height
-        panel.setContentSize(NSSize(width: width, height: fittingHeight))
-        panel.contentView = hosting
-
-        panel.center()
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        welcomePanel = panel
-    }
-}
-
-// MARK: - Welcome view
-
-private struct WelcomeView: View {
-    let onDismiss: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(spacing: 20) {
-                if let img = AppResources.sunflower() {
-                    Image(nsImage: img)
-                        .resizable()
-                        .frame(width: 48, height: 48)
-                }
-                Text("Missting is installed!")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-
-                Text("**Sign in with Google** to see your meetings.")
-                    .font(.system(size: 12.5))
-                    .foregroundColor(Color(white: 0.75))
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Button("Got it!") { onDismiss() }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-            }
-            .padding(.top, 32)
-            .padding(.horizontal, 28)
-            .padding(.bottom, 28)
-
-            closeButton(action: onDismiss)
-        }
-        .frame(width: 360)
-        .background(Color(white: 0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
 }
 
 private func closeButton(action: @escaping () -> Void) -> some View {
