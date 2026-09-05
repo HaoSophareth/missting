@@ -6,6 +6,7 @@ import Sparkle
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var welcomePanel: NSPanel?
     private var starPanel: NSPanel?
+    private var menuBarTipPanel: NSPanel?
 
     private static let starRepoURL = URL(string: "https://github.com/HaoSophareth/missting")!
 
@@ -58,6 +59,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         maybeShowStarPrompt()
+        maybeShowMenuBarTip()
+    }
+
+    // MARK: - Menu bar tip
+
+    /// One day after first launch, show a one-time tip about keeping the icon
+    /// visible — moved out of the welcome panel so that panel stays focused
+    /// on the one action that matters immediately (sign in). Never repeats.
+    private func maybeShowMenuBarTip() {
+        let d = UserDefaults.standard
+        guard !d.bool(forKey: "hasShownMenuBarTip"),
+              let firstLaunch = d.object(forKey: "firstLaunchDate") as? Date,
+              Date().timeIntervalSince(firstLaunch) >= 24 * 60 * 60
+        else { return }
+
+        d.set(true, forKey: "hasShownMenuBarTip")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.showMenuBarTipPanel()
+        }
+    }
+
+    private func showMenuBarTipPanel() {
+        let width: CGFloat = 360
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: width, height: 1),
+            styleMask: [.nonactivatingPanel, .borderless],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.isReleasedWhenClosed = false
+        panel.appearance = NSAppearance(named: .darkAqua)
+
+        let hosting = NSHostingView(rootView: MenuBarTipView {
+            panel.close()
+            self.menuBarTipPanel = nil
+        })
+        hosting.frame = NSRect(x: 0, y: 0, width: width, height: 200)
+        let fittingHeight = hosting.fittingSize.height
+        panel.setContentSize(NSSize(width: width, height: fittingHeight))
+        panel.contentView = hosting
+
+        panel.center()
+        panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        menuBarTipPanel = panel
     }
 
     // MARK: - Star prompt
@@ -142,6 +194,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hosting = NSHostingView(rootView: WelcomeView {
             panel.close()
             self.welcomePanel = nil
+            // Open the real popover right away instead of leaving the user to
+            // find and click the menu bar icon themselves after dismissing.
+            MenuBarManager.shared.showPopover()
         })
         hosting.frame = NSRect(x: 0, y: 0, width: width, height: 200)
         let fittingHeight = hosting.fittingSize.height
@@ -173,15 +228,11 @@ private struct WelcomeView: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
 
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Click the sunflower icon, then **Sign in with Google**.")
-                        .foregroundColor(Color(white: 0.75))
-                    Text("Hold ⌘ and drag it next to Wi-Fi\nor Bluetooth to keep it visible.")
-                        .foregroundColor(Color(white: 0.45))
-                }
-                .font(.system(size: 12.5))
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
+                Text("Click the sunflower icon, then **Sign in with Google**.")
+                    .font(.system(size: 12.5))
+                    .foregroundColor(Color(white: 0.75))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Button("Got it!") { onDismiss() }
                     .buttonStyle(PrimaryButtonStyle())
@@ -210,6 +261,44 @@ private func closeButton(action: @escaping () -> Void) -> some View {
     }
     .buttonStyle(.plain)
     .padding(12)
+}
+
+// MARK: - Menu bar tip view
+
+private struct MenuBarTipView: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 20) {
+                if let img = AppResources.sunflower() {
+                    Image(nsImage: img)
+                        .resizable()
+                        .frame(width: 48, height: 48)
+                }
+                Text("Keep the icon visible")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                Text("Hold ⌘ and drag it next to Wi-Fi\nor Bluetooth to keep it visible.")
+                    .font(.system(size: 12.5))
+                    .foregroundColor(Color(white: 0.6))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Got it!") { onDismiss() }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 32)
+            .padding(.horizontal, 28)
+            .padding(.bottom, 28)
+
+            closeButton(action: onDismiss)
+        }
+        .frame(width: 360)
+        .background(Color(white: 0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
 }
 
 // MARK: - Star prompt view
