@@ -118,9 +118,9 @@ final class GoogleAuthManager: NSObject, ObservableObject {
         accessTokens.removeValue(forKey: email)
         refreshTokens.removeValue(forKey: email)
         tokenExpiries.removeValue(forKey: email)
-        KeychainStore.delete(account: tKey("access", email))
-        KeychainStore.delete(account: tKey("refresh", email))
         let d = UserDefaults.standard
+        d.removeObject(forKey: tKey("access", email))
+        d.removeObject(forKey: tKey("refresh", email))
         d.removeObject(forKey: tKey("expiry", email))
         connectedEmails.removeAll { $0 == email }
         d.set(connectedEmails, forKey: kEmails)
@@ -169,9 +169,16 @@ final class GoogleAuthManager: NSObject, ObservableObject {
     private func tKey(_ type: String, _ email: String) -> String { "missting.\(type).\(email)" }
 
     private func save(for email: String) {
-        if let t = accessTokens[email]  { KeychainStore.set(t, account: tKey("access", email)) }
-        if let t = refreshTokens[email] { KeychainStore.set(t, account: tKey("refresh", email)) }
         let d = UserDefaults.standard
+        // Deliberately UserDefaults, not Keychain: every CI release is ad-hoc
+        // signed with a different signature, so Keychain treats each update as
+        // an untrusted app for tokens a previous version saved, surfacing a
+        // scary system "enter your password to allow access" dialog on
+        // basically every auto-update. Trading OS-level encryption at rest
+        // for a dialog that never appears is the right call until the app is
+        // signed with a stable Developer ID.
+        if let t = accessTokens[email]  { d.set(t, forKey: tKey("access", email)) }
+        if let t = refreshTokens[email] { d.set(t, forKey: tKey("refresh", email)) }
         if let e = tokenExpiries[email] { d.set(e.timeIntervalSince1970, forKey: tKey("expiry", email)) }
         d.set(connectedEmails, forKey: kEmails)
     }
@@ -180,8 +187,8 @@ final class GoogleAuthManager: NSObject, ObservableObject {
         let d = UserDefaults.standard
         let emails = d.stringArray(forKey: kEmails) ?? []
         for email in emails {
-            accessTokens[email]  = KeychainStore.get(account: tKey("access", email))
-            refreshTokens[email] = KeychainStore.get(account: tKey("refresh", email))
+            accessTokens[email]  = d.string(forKey: tKey("access", email))
+            refreshTokens[email] = d.string(forKey: tKey("refresh", email))
             if let v = d.object(forKey: tKey("expiry", email)) as? Double {
                 tokenExpiries[email] = Date(timeIntervalSince1970: v)
             }
@@ -189,17 +196,17 @@ final class GoogleAuthManager: NSObject, ObservableObject {
         connectedEmails = emails.filter { refreshTokens[$0] != nil }
     }
 
-    // Migrates the old single-account UserDefaults storage to per-email Keychain
-    // entries, and any per-email tokens already sitting in UserDefaults from
-    // before tokens moved to Keychain — so existing sign-ins survive the upgrade.
+    // Migrates the old single-account UserDefaults storage (pre-multi-account)
+    // to the current per-email key format — unrelated to the Keychain move
+    // above, this is just an older, still-relevant schema migration.
     private func migrateIfNeeded() {
         let d = UserDefaults.standard
 
         if let email = d.string(forKey: "missting.userEmail"),
            let refresh = d.string(forKey: "missting.refreshToken") {
-            KeychainStore.set(refresh, account: tKey("refresh", email))
+            d.set(refresh, forKey: tKey("refresh", email))
             if let access = d.string(forKey: "missting.accessToken") {
-                KeychainStore.set(access, account: tKey("access", email))
+                d.set(access, forKey: tKey("access", email))
             }
             if let exp = d.object(forKey: "missting.tokenExpiry") as? Double {
                 d.set(exp, forKey: tKey("expiry", email))
@@ -210,13 +217,6 @@ final class GoogleAuthManager: NSObject, ObservableObject {
         }
         ["missting.accessToken", "missting.refreshToken", "missting.tokenExpiry", "missting.userEmail"]
             .forEach { d.removeObject(forKey: $0) }
-
-        for email in d.stringArray(forKey: kEmails) ?? [] {
-            if let v = d.string(forKey: tKey("access", email))  { KeychainStore.set(v, account: tKey("access", email)) }
-            if let v = d.string(forKey: tKey("refresh", email)) { KeychainStore.set(v, account: tKey("refresh", email)) }
-            d.removeObject(forKey: tKey("access", email))
-            d.removeObject(forKey: tKey("refresh", email))
-        }
     }
 
     enum AuthError: Error { case noCode, notSignedIn, noEmail, tokenRejected }

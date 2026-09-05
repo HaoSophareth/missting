@@ -6,6 +6,7 @@ struct MeetingListView: View {
     @ObservedObject private var auth = GoogleAuthManager.shared
 
     @State private var dismissed: Set<String> = []
+    @State private var showChecklist = false
     @State private var showSettings = false
     @State private var isFirstTimeSetup = false
     @State private var signingIn = false
@@ -53,7 +54,9 @@ struct MeetingListView: View {
 
     var body: some View {
         Group {
-            if showSettings {
+            if showChecklist {
+                checklistPanel
+            } else if showSettings {
                 settingsPanel
             } else {
                 mainPanel
@@ -77,7 +80,7 @@ struct MeetingListView: View {
                 if !UserDefaults.standard.bool(forKey: "hasShownInitialSetup") {
                     UserDefaults.standard.set(true, forKey: "hasShownInitialSetup")
                     isFirstTimeSetup = true
-                    showSettings = true
+                    showChecklist = true
                 }
             }
         }
@@ -107,6 +110,70 @@ struct MeetingListView: View {
 
     // MARK: - Panels
 
+    private var checklistPanel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Before you start")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+
+            checklistRow(done: true, title: "Google Calendar", subtitle: "Connected")
+
+            Divider().background(Color(white: 0.12)).padding(.horizontal, 16)
+
+            checklistRow(
+                done: false,
+                title: "Automatic updates",
+                subtitle: "macOS may ask to allow this under Privacy & Security → App Management."
+            )
+
+            Button {
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security")!)
+            } label: {
+                Text("Open System Settings")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color(red: 0.31, green: 0.56, blue: 0.97))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+
+            Button("Continue") {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    showChecklist = false
+                    showSettings = true
+                }
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .keyboardShortcut(.defaultAction)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+        .frame(width: 300)
+    }
+
+    private func checklistRow(done: Bool, title: String, subtitle: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 15))
+                .foregroundColor(done ? Color(red: 0.2, green: 0.78, blue: 0.42) : Color(white: 0.3))
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white)
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(white: 0.45))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+    }
+
     private var settingsPanel: some View {
         VStack(spacing: 0) {
             HStack {
@@ -134,7 +201,7 @@ struct MeetingListView: View {
             .padding(.bottom, isFirstTimeSetup ? 4 : 8)
 
             if isFirstTimeSetup {
-                Text("You're connected! Pick your notification timing and which calendars to include below — you can always come back here later from the ⚙️ icon.")
+                Text("You're connected — set your preferences below.")
                     .font(.system(size: 11))
                     .foregroundColor(Color(white: 0.45))
                     .fixedSize(horizontal: false, vertical: true)
