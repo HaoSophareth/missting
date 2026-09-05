@@ -921,10 +921,10 @@ h1 {
   font-size: 17px;
   font-weight: 600;
   color: var(--text);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 .install-lede {
-  margin: 0 0 10px;
+  margin: 0;
   color: var(--muted);
   font-size: 13px;
 }
@@ -944,7 +944,7 @@ h1 {
   border-radius: 4px;
 }
 .install-hint {
-  margin: 10px 0 0;
+  margin: 16px 0 0;
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
@@ -955,7 +955,7 @@ h1 {
   align-items: center;
   gap: 10px;
   width: 100%;
-  margin-top: 6px;
+  margin-top: 8px;
   background: var(--panel);
   border: 1px solid rgba(79, 143, 247, 0.45);
   border-radius: 12px;
