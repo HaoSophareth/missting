@@ -5,6 +5,8 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: SettingsManager
     @EnvironmentObject private var calendar: CalendarManager
 
+    private let visibleCalendarRows: CGFloat = 5
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
 
@@ -81,38 +83,20 @@ struct SettingsView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 14)
             } else {
-                VStack(spacing: 0) {
-                    ForEach(calendar.availableCalendars) { cal in
-                        let isEnabled = !settings.disabledCalendarIds.contains(cal.id)
-                        Button {
-                            if isEnabled {
-                                settings.disabledCalendarIds.insert(cal.id)
-                            } else {
-                                settings.disabledCalendarIds.remove(cal.id)
-                            }
-                            CalendarManager.shared.fetchMeetings()
-                        } label: {
-                            HStack(spacing: 10) {
-                                Circle()
-                                    .fill(colorFromHex(cal.colorHex) ?? Color(white: 0.4))
-                                    .frame(width: 9, height: 9)
-                                Text(cal.name)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(isEnabled ? Color(white: 0.85) : Color(white: 0.35))
-                                    .lineLimit(1)
-                                Spacer()
-                                Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(isEnabled ? Color(red: 0.31, green: 0.56, blue: 0.97) : Color(white: 0.25))
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .contentShape(Rectangle())
+                let calendars = calendar.availableCalendars
+                let rowHeight: CGFloat = 30
+                let listHeight = min(CGFloat(calendars.count), visibleCalendarRows) * rowHeight
+
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(calendars) { cal in
+                            calendarRow(cal)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.bottom, 8)
+                .frame(height: listHeight)
+
+                Color.clear.frame(height: 8)
             }
 
             Divider().background(Color(white: 0.12))
@@ -169,6 +153,36 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
+
+    private func calendarRow(_ cal: CalendarInfo) -> some View {
+        let isEnabled = !settings.disabledCalendarIds.contains(cal.id)
+        return Button {
+            if isEnabled {
+                settings.disabledCalendarIds.insert(cal.id)
+            } else {
+                settings.disabledCalendarIds.remove(cal.id)
+            }
+            CalendarManager.shared.fetchMeetings()
+        } label: {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(colorFromHex(cal.colorHex) ?? Color(white: 0.4))
+                    .frame(width: 9, height: 9)
+                Text(cal.name)
+                    .font(.system(size: 12))
+                    .foregroundColor(isEnabled ? Color(white: 0.85) : Color(white: 0.35))
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 14))
+                    .foregroundColor(isEnabled ? Color(red: 0.31, green: 0.56, blue: 0.97) : Color(white: 0.25))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
 
     private func colorFromHex(_ hex: String?) -> Color? {
         guard let hex = hex else { return nil }

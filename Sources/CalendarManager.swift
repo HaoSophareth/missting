@@ -30,6 +30,15 @@ struct Meeting: Identifiable, Equatable {
     var minsRemaining: Int  { Int((endDate.timeIntervalSinceNow / 60).rounded()) }
 }
 
+/// Formats a minute count as human-readable duration: "45m" under an hour,
+/// "3h" or "3h 12m" at or above an hour.
+func formatDuration(minutes: Int) -> String {
+    guard minutes >= 60 else { return "\(minutes)m" }
+    let hours = minutes / 60
+    let mins = minutes % 60
+    return mins == 0 ? "\(hours)h" : "\(hours)h \(mins)m"
+}
+
 struct CalendarInfo: Identifiable, Equatable {
     let id: String
     let name: String
@@ -115,6 +124,13 @@ final class CalendarManager: ObservableObject {
                 autoScheduleMinervaClasses(result.meetings)
             } catch {
                 print("Calendar fetch error:", error)
+                // A rejected refresh token means GoogleAuthManager already signed this
+                // account out — stop polling and clear stale data so the UI falls back
+                // to the sign-in prompt instead of quietly showing yesterday's meetings.
+                if !auth.isSignedIn {
+                    refreshTimer?.invalidate()
+                    self.meetings = []
+                }
             }
         }
     }
@@ -183,10 +199,17 @@ final class CalendarManager: ObservableObject {
     /// Picks which copy of a duplicated event represents it: prefer the copy where
     /// self is explicitly an attendee, so a pending/declined status on any copy
     /// isn't shadowed by a defaulted "accepted" from a calendar with no attendee data.
+    ///
+    /// Copies arrive in task-group completion order, which varies run to run even
+    /// when the exact same calendars produce the exact same copies — so we sort by
+    /// a stable key first. Without this, the chosen copy's `id` (what JoinTracker,
+    /// AutoJoinManager, and the dismissed-cards set all key off) could flip between
+    /// refreshes for any event duplicated across two enabled calendars.
     private static func pickRepresentative(_ copies: [Meeting]) -> Meeting {
-        copies.first { $0.calendarEmail != nil && $0.responseStatus != "accepted" }
-            ?? copies.first { $0.calendarEmail != nil }
-            ?? copies[0]
+        let sorted = copies.sorted { ($0.calendarId ?? "", $0.id) < ($1.calendarId ?? "", $1.id) }
+        return sorted.first { $0.calendarEmail != nil && $0.responseStatus != "accepted" }
+            ?? sorted.first { $0.calendarEmail != nil }
+            ?? sorted[0]
     }
 
     private func fetchCalendarList(token: String) async throws -> [CalendarInfo] {

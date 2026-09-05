@@ -35,8 +35,16 @@ fi
 mkdir -p "$BUNDLE/Contents/Frameworks"
 cp -R "$FRAMEWORK_SRC" "$BUNDLE/Contents/Frameworks/"
 
-# Ad-hoc sign so the bundle is coherent for Sparkle's installer
-codesign --force --deep -s - "$BUNDLE" 2>/dev/null
+# Sign with a stable local identity when available so the Keychain doesn't
+# treat every rebuild as a new app (ad-hoc signatures change per-build and
+# retrigger the "wants to use your confidential information" prompt).
+# Falls back to ad-hoc, matching prior behavior, when no such identity exists (e.g. in CI).
+IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 -o '"Apple Development:[^"]*"' | tr -d '"')
+if [ -n "$IDENTITY" ]; then
+  codesign --force --deep -s "$IDENTITY" "$BUNDLE"
+else
+  codesign --force --deep -s - "$BUNDLE" 2>/dev/null
+fi
 
 echo "Done! Open $BUNDLE to launch the app."
 echo ""

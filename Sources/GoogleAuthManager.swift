@@ -6,8 +6,8 @@ import AppKit
 final class GoogleAuthManager: NSObject, ObservableObject {
     static let shared = GoogleAuthManager()
 
-    private let clientId      = "34429310373-fb6vc3rr5i7c9c8oi0i7vvueslk18j7m.apps.googleusercontent.com"
-    private let redirectScheme = "com.googleusercontent.apps.34429310373-fb6vc3rr5i7c9c8oi0i7vvueslk18j7m"
+    private let clientId      = "267510202208-paoonq0585irick1vff78hcn6qj2tido.apps.googleusercontent.com"
+    private let redirectScheme = "com.googleusercontent.apps.267510202208-paoonq0585irick1vff78hcn6qj2tido"
     private let scope = "openid email https://www.googleapis.com/auth/calendar.readonly"
 
     @Published var connectedEmails: [String] = []
@@ -91,14 +91,22 @@ final class GoogleAuthManager: NSObject, ObservableObject {
            exp > Date().addingTimeInterval(60) { return t }
 
         guard let rt = refreshTokens[email] else { throw AuthError.notSignedIn }
-        let tok    = try await postToken(["client_id": clientId, "refresh_token": rt, "grant_type": "refresh_token"])
-        let expiry = Date().addingTimeInterval(TimeInterval(tok.expires_in ?? 3600))
-        await MainActor.run {
-            accessTokens[email]  = tok.access_token
-            tokenExpiries[email] = expiry
-            save(for: email)
+        do {
+            let tok    = try await postToken(["client_id": clientId, "refresh_token": rt, "grant_type": "refresh_token"])
+            let expiry = Date().addingTimeInterval(TimeInterval(tok.expires_in ?? 3600))
+            await MainActor.run {
+                accessTokens[email]  = tok.access_token
+                tokenExpiries[email] = expiry
+                save(for: email)
+            }
+            return tok.access_token
+        } catch AuthError.tokenRejected {
+            // Google rejected the refresh token itself (revoked, expired, password
+            // changed) — this account can never silently recover, so drop it now
+            // rather than failing forever with no visible indication to reconnect.
+            await MainActor.run { signOut(email: email) }
+            throw AuthError.tokenRejected
         }
-        return tok.access_token
     }
 
     func getValidToken() async throws -> String {
@@ -140,7 +148,13 @@ final class GoogleAuthManager: NSObject, ObservableObject {
         req.httpBody = body
             .map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)" }
             .joined(separator: "&").data(using: .utf8)
-        let (data, _) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await URLSession.shared.data(for: req)
+        // A non-2xx here means Google rejected the request itself (e.g. invalid_grant
+        // for a revoked/expired refresh token) — distinct from a network failure,
+        // which throws before we get a response at all and should NOT sign anyone out.
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw AuthError.tokenRejected
+        }
         return try JSONDecoder().decode(TokenResponse.self, from: data)
     }
 
@@ -205,7 +219,7 @@ final class GoogleAuthManager: NSObject, ObservableObject {
         }
     }
 
-    enum AuthError: Error { case noCode, notSignedIn, noEmail }
+    enum AuthError: Error { case noCode, notSignedIn, noEmail, tokenRejected }
 }
 
 extension GoogleAuthManager: ASWebAuthenticationPresentationContextProviding {

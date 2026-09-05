@@ -34,7 +34,7 @@ struct FloatingAlertView: View {
                         Circle()
                             .fill(inProgressStatusColor)
                             .frame(width: 6, height: 6)
-                        Text("In progress · \(meeting.minsRemaining)m left")
+                        Text("In progress · \(formatDuration(minutes: meeting.minsRemaining)) left")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(inProgressStatusColor)
                     }

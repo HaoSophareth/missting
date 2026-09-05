@@ -139,8 +139,10 @@ final class MenuBarManager: NSObject {
     // MARK: - Click handling
 
     @objc private func handleClick(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent else { return }
-        if event.type == .rightMouseUp {
+        // No current event happens for assistive/automation-driven activation
+        // (VoiceOver, accessibility tooling) — treat it as a normal left click
+        // rather than silently doing nothing.
+        if NSApp.currentEvent?.type == .rightMouseUp {
             showQuitMenu()
         } else {
             guard let pop = popover else { return }

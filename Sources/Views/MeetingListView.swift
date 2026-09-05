@@ -10,11 +10,6 @@ struct MeetingListView: View {
     @State private var signingIn = false
     @State private var signInError: String?
     @State private var dayOffset = 0
-    @State private var showRequestAccess = false
-    @State private var requestEmail = ""
-    @State private var requestingAccess = false
-    @State private var requestSent = false
-    @State private var requestError: String?
 
     private var accepted: [Meeting] {
         calendar.acceptedMeetings(daysFromToday: dayOffset)
@@ -284,13 +279,19 @@ struct MeetingListView: View {
             Button {
                 signingIn = true
                 signInError = nil
+                // Close our own popover so it doesn't sit stacked behind the
+                // system Google sign-in window while the user authenticates.
+                MenuBarManager.shared.closePopover()
                 Task {
                     do {
                         try await GoogleAuthManager.shared.signIn()
                     } catch {
                         await MainActor.run { signInError = "Sign-in failed. Try again." }
                     }
-                    await MainActor.run { signingIn = false }
+                    await MainActor.run {
+                        signingIn = false
+                        MenuBarManager.shared.showPopover()
+                    }
                 }
             } label: {
                 HStack(spacing: 6) {
@@ -300,78 +301,8 @@ struct MeetingListView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             .disabled(signingIn)
-
-            requestAccessSection
         }
         .padding(.vertical, 28)
         .padding(.horizontal, 16)
-    }
-
-    @ViewBuilder
-    private var requestAccessSection: some View {
-        if requestSent {
-            Text("Request sent — we'll email you once you're whitelisted.")
-                .font(.system(size: 10))
-                .foregroundColor(Color(red: 0.2, green: 0.78, blue: 0.42))
-                .multilineTextAlignment(.center)
-                .padding(.top, 4)
-        } else if showRequestAccess {
-            VStack(spacing: 6) {
-                TextField("your email", text: $requestEmail)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(Color(white: 0.14))
-                    .cornerRadius(6)
-                    .frame(width: 180)
-                if let err = requestError {
-                    Text(err)
-                        .font(.system(size: 10))
-                        .foregroundColor(Color(red: 1, green: 0.4, blue: 0.4))
-                }
-                HStack(spacing: 8) {
-                    Button {
-                        showRequestAccess = false
-                        requestError = nil
-                    } label: {
-                        Text("Cancel")
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
-
-                    Button {
-                        requestingAccess = true
-                        requestError = nil
-                        Task {
-                            do {
-                                try await AccessRequestManager.shared.requestAccess(email: requestEmail)
-                                await MainActor.run { requestSent = true }
-                            } catch {
-                                await MainActor.run { requestError = "Couldn't send. Try again." }
-                            }
-                            await MainActor.run { requestingAccess = false }
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            if requestingAccess { ProgressView().scaleEffect(0.6).tint(.white) }
-                            Text(requestingAccess ? "Sending…" : "Submit")
-                        }
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(requestingAccess || !requestEmail.contains("@"))
-                }
-            }
-            .padding(.top, 6)
-        } else {
-            Button {
-                showRequestAccess = true
-            } label: {
-                Text("Don't have access yet? Request access")
-            }
-            .buttonStyle(.plain)
-            .font(.system(size: 10))
-            .foregroundColor(Color(white: 0.45))
-            .padding(.top, 4)
-        }
     }
 }

@@ -164,7 +164,7 @@ struct MeetingCardView: View {
                 Circle()
                     .fill(inProgressStatusColor)
                     .frame(width: 5, height: 5)
-                Text("In progress · \(meeting.minsElapsed)m in · \(meeting.minsRemaining)m left")
+                Text("In progress · \(formatDuration(minutes: meeting.minsRemaining)) left")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(inProgressStatusColor)
             }
