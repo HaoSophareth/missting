@@ -145,6 +145,30 @@ struct SettingsView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 20)
+
+            Divider().background(Color(white: 0.12))
+
+            // MARK: - Star on GitHub
+            Button {
+                NSWorkspace.shared.open(URL(string: "https://github.com/HaoSophareth/missting")!)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "star")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.7))
+                    Text("Star Missting on GitHub")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(white: 0.35))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
         .frame(width: 300)
         .simultaneousGesture(TapGesture().onEnded {
