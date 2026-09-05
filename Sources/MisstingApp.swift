@@ -176,7 +176,7 @@ private struct WelcomeView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Click the sunflower icon, then **Sign in with Google**.")
                         .foregroundColor(Color(white: 0.75))
-                    Text("To keep it from getting hidden, hold ⌘ and drag it next to Wi-Fi or Bluetooth — it'll stay there for good.")
+                    Text("Hold ⌘ and drag it next to Wi-Fi\nor Bluetooth to keep it visible.")
                         .foregroundColor(Color(white: 0.45))
                 }
                 .font(.system(size: 12.5))
