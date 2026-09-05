@@ -388,14 +388,16 @@ struct MeetingListView: View {
 
     private var authPrompt: some View {
         VStack(spacing: 12) {
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 32))
-                .foregroundColor(Color(white: 0.3))
-                .padding(.bottom, 4)
-            Text("Connect Google Calendar")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Color(white: 0.7))
-            Text("Sign in to see your upcoming meetings and get notified before they start.")
+            if let img = AppResources.sunflower() {
+                Image(nsImage: img)
+                    .resizable()
+                    .frame(width: 40, height: 40)
+                    .padding(.bottom, 4)
+            }
+            Text("Welcome to Missting")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white)
+            Text("Sign in with Google to see your upcoming meetings and get notified before they start.")
                 .font(.system(size: 11))
                 .foregroundColor(Color(white: 0.4))
                 .multilineTextAlignment(.center)
