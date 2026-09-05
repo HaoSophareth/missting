@@ -917,38 +917,21 @@ h1 {
   margin-top: 30px;
   max-width: 560px;
 }
-.install-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 12px;
-}
 .install-lede {
+  max-width: 38rem;
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 1.02rem;
+  line-height: 1.7;
 }
 .install-lede kbd {
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 1px 5px;
-  font-size: 11px;
+  padding: 1px 6px;
+  font-size: 0.85rem;
   font-family: inherit;
   color: var(--text);
-}
-.inline-logo {
-  width: 16px;
-  height: 16px;
-  vertical-align: -3px;
-  border-radius: 4px;
-}
-.install-hint {
-  margin: 16px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-  opacity: 0.8;
 }
 .install-cmd {
   display: flex;
