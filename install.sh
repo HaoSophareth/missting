@@ -14,4 +14,4 @@ xattr -cr /Applications/Missting.app
 rm -f /tmp/Missting.zip
 
 open /Applications/Missting.app
-echo "🌻 Missting installed! Look for the sunflower in your menu bar."
+echo "Missting installed! Look for the sunflower in your menu bar."
