@@ -29,6 +29,11 @@ final class FloatingAlertManager {
         // Don't show a duplicate for the same meeting
         if entries.contains(where: { $0.meetingId == meeting.id }) { return }
 
+        // Both this alert and the popover anchor near the screen's top-right
+        // corner, so they'd render stacked on top of each other. The meeting
+        // is already visible in the open popover, so skip the redundant alert.
+        if MenuBarManager.shared.isPopoverOpen { return }
+
         let activeScreen = currentScreen()
 
         let hostingView = NSHostingView(

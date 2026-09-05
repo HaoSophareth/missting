@@ -25,6 +25,10 @@ final class MenuBarManager: NSObject {
         grayIcon  = loadMenuBarIcon(gray: true)
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        // Persists wherever the user Cmd-drags the icon to across launches —
+        // without this, macOS has no memory of a manual reposition, so a
+        // newly-hidden icon (crowded menu bar, notch) can't be fixed for good.
+        item.autosaveName = "MisstingStatusItem"
         if let button = item.button {
             button.image = grayIcon ?? NSImage(systemSymbolName: "alarm", accessibilityDescription: "Missting")
             button.imageScaling = .scaleProportionallyDown
@@ -106,6 +110,11 @@ final class MenuBarManager: NSObject {
     }
 
     // MARK: - Popover
+
+    /// Whether the meeting-list popover is currently open — checked by
+    /// FloatingAlertManager so a reminder alert never renders stacked on top
+    /// of it (both anchor near the same top-right corner of the screen).
+    var isPopoverOpen: Bool { popover?.isShown ?? false }
 
     func showPopover() {
         guard let button = statusItem?.button, let pop = popover, !pop.isShown else { return }

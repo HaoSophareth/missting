@@ -152,7 +152,7 @@ private struct WelcomeView: View {
                 .font(.headline)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-            Text("Look for the sunflower icon at the top of your screen to view and join meetings.\n\nIf the icon is hidden behind your MacBook's notch, try removing other menu bar icons to make room.")
+            Text("Look for the sunflower icon at the top of your screen to view and join meetings.\n\nIf it's hidden behind your MacBook's notch (common with lots of menu bar apps open), hold ⌘ and drag it next to icons like Wi-Fi or Bluetooth — once you drop it there, it stays put for good.")
                 .font(.subheadline)
                 .foregroundColor(Color(white: 0.5))
                 .multilineTextAlignment(.center)
