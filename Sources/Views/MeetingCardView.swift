@@ -59,8 +59,11 @@ struct MeetingCardView: View {
                         // Once live, hide Auto-join/Scheduled/Cancel — only show join state
                         if hasLink {
                             if hasJoined {
-                                Button("Joined") { NSWorkspace.shared.open(meeting.joinURL!) }
-                                    .buttonStyle(JoinedButtonStyle())
+                                Button("Joined") {
+                                    NSWorkspace.shared.open(meeting.joinURL!)
+                                    MenuBarManager.shared.closePopover()
+                                }
+                                .buttonStyle(JoinedButtonStyle())
                             } else {
                                 Button("Already in it") {
                                     JoinTracker.shared.markJoined(meeting)
@@ -71,6 +74,7 @@ struct MeetingCardView: View {
                                     JoinTracker.shared.markJoined(meeting)
                                     joinedLocally = true
                                     NSWorkspace.shared.open(meeting.joinURL!)
+                                    MenuBarManager.shared.closePopover()
                                 }
                                 .buttonStyle(PrimaryButtonStyle())
                             }
@@ -78,6 +82,7 @@ struct MeetingCardView: View {
                     } else if hasJoined {
                         Button("Joined") {
                             if let url = meeting.joinURL { NSWorkspace.shared.open(url) }
+                            MenuBarManager.shared.closePopover()
                         }
                         .buttonStyle(JoinedButtonStyle())
                         Button("Cancel") {
@@ -105,6 +110,7 @@ struct MeetingCardView: View {
                                 JoinTracker.shared.markJoined(meeting)
                                 joinedLocally = true
                                 NSWorkspace.shared.open(meeting.joinURL!)
+                                MenuBarManager.shared.closePopover()
                             }
                             .buttonStyle(PrimaryButtonStyle())
                         }

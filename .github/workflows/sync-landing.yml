@@ -25,6 +25,7 @@ jobs:
           sed -i 's|href="styles.css"|href="/missting/styles.css"|g' phareth-site/missting/index.html
           sed -i 's|src="script.js"|src="/missting/script.js"|g' phareth-site/missting/index.html
           sed -i 's|href="/favicon.png"|href="/missting/favicon.png"|g' phareth-site/missting/index.html
+          sed -i 's|src="/favicon.png"|src="/missting/favicon.png"|g' phareth-site/missting/index.html
           sed -i 's|href="/privacy"|href="/missting/privacy"|g' phareth-site/missting/index.html
           sed -i 's|href="/terms"|href="/missting/terms"|g' phareth-site/missting/index.html
           sed -i 's|href="/" class="back"|href="/missting" class="back"|g' phareth-site/missting/privacy.html phareth-site/missting/terms.html

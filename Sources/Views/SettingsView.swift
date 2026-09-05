@@ -151,6 +151,11 @@ struct SettingsView: View {
             // MARK: - Star on GitHub
             Button {
                 NSWorkspace.shared.open(URL(string: "https://github.com/HaoSophareth/missting")!)
+                // The click itself was inside the popover, not outside it, so
+                // the normal click-away-to-dismiss never fires — close it
+                // explicitly since we know this action sends the user
+                // elsewhere (a browser) rather than staying in the app.
+                MenuBarManager.shared.closePopover()
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "star")
