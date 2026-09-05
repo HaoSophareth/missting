@@ -228,7 +228,7 @@ private struct WelcomeView: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
 
-                Text("Click the sunflower icon, then **Sign in with Google**.")
+                Text("**Sign in with Google** to see your meetings.")
                     .font(.system(size: 12.5))
                     .foregroundColor(Color(white: 0.75))
                     .multilineTextAlignment(.center)
