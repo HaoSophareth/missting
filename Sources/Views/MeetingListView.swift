@@ -125,20 +125,10 @@ struct MeetingListView: View {
 
             checklistRow(
                 done: false,
-                title: "Automatic updates",
-                subtitle: "macOS may ask to allow this under Privacy & Security → App Management."
+                title: "Menu bar icon",
+                subtitle: "Hold ⌘ and drag it next to Wi-Fi or Bluetooth so it never gets hidden."
             )
-
-            Button {
-                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security")!)
-            } label: {
-                Text("Open System Settings")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(Color(red: 0.31, green: 0.56, blue: 0.97))
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
 
             Button("Continue") {
                 withAnimation(.easeInOut(duration: 0.15)) {
