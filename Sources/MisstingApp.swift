@@ -77,16 +77,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showStarPanel() {
-        let width: CGFloat = 340
+        let width: CGFloat = 360
+        // Borderless, not titled — a native macOS title bar clashes with the
+        // dark custom chrome every other panel/popover in the app uses.
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: width, height: 1),
-            styleMask: [.titled, .closable, .nonactivatingPanel],
+            styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
         )
-        panel.title = "Enjoying Missting?"
         panel.isFloatingPanel = true
         panel.level = .floating
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
         // Without this, the panel simply never renders at all (not just
         // hidden behind) if the frontmost app is in a fullscreen Space —
         // it's created on the current Space but can't follow into one.
@@ -119,16 +123,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Welcome panel
 
     private func showWelcomePanel() {
-        let width: CGFloat = 340
+        let width: CGFloat = 360
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: width, height: 1),
-            styleMask: [.titled, .closable, .nonactivatingPanel],
+            styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
         )
-        panel.title = "Welcome to Missting"
         panel.isFloatingPanel = true
         panel.level = .floating
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isReleasedWhenClosed = false
         panel.appearance = NSAppearance(named: .darkAqua)
@@ -155,34 +161,55 @@ private struct WelcomeView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            if let img = AppResources.sunflower() {
-                Image(nsImage: img)
-                    .resizable()
-                    .frame(width: 48, height: 48)
-            }
-            Text("Missting is installed!")
-                .font(.headline)
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 20) {
+                if let img = AppResources.sunflower() {
+                    Image(nsImage: img)
+                        .resizable()
+                        .frame(width: 48, height: 48)
+                }
+                Text("Missting is installed!")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Click the sunflower icon, then **Sign in with Google**.")
-                    .foregroundColor(Color(white: 0.75))
-                Text("Icon hidden? Hold ⌘ and drag it next to Wi-Fi or Bluetooth — it'll stay there for good.")
-                    .foregroundColor(Color(white: 0.45))
-            }
-            .font(.system(size: 12.5))
-            .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Click the sunflower icon, then **Sign in with Google**.")
+                        .foregroundColor(Color(white: 0.75))
+                    Text("Icon hidden? Hold ⌘ and drag it next to Wi-Fi or Bluetooth — it'll stay there for good.")
+                        .foregroundColor(Color(white: 0.45))
+                }
+                .font(.system(size: 12.5))
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Button("Got it!") { onDismiss() }
-                .buttonStyle(PrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
+                Button("Got it!") { onDismiss() }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 32)
+            .padding(.horizontal, 28)
+            .padding(.bottom, 28)
+
+            closeButton(action: onDismiss)
         }
-        .padding(24)
-        .frame(width: 320)
+        .frame(width: 360)
         .background(Color(white: 0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
+}
+
+private func closeButton(action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+        Image(systemName: "xmark")
+            .font(.system(size: 10, weight: .medium))
+            .foregroundColor(Color(white: 0.5))
+            .frame(width: 22, height: 22)
+            .background(Color(white: 0.15))
+            .clipShape(Circle())
+    }
+    .buttonStyle(.plain)
+    .padding(12)
 }
 
 // MARK: - Star prompt view
@@ -192,31 +219,38 @@ private struct StarPromptView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
-            if let img = AppResources.sunflower() {
-                Image(nsImage: img)
-                    .resizable()
-                    .frame(width: 56, height: 56)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 18) {
+                if let img = AppResources.sunflower() {
+                    Image(nsImage: img)
+                        .resizable()
+                        .frame(width: 48, height: 48)
+                }
+                Text("Enjoying Missting?")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                Text("It's free and open-source. A star on GitHub helps other people find it.")
+                    .font(.system(size: 12.5))
+                    .foregroundColor(Color(white: 0.5))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Button("Not now") { onDismiss() }
+                        .buttonStyle(SecondaryButtonStyle())
+                    Button("Star on GitHub") { onStar() }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                }
             }
-            Text("Enjoying Missting?")
-                .font(.headline)
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
-            Text("It's free and open-source. A star on GitHub helps other people find it.")
-                .font(.subheadline)
-                .foregroundColor(Color(white: 0.5))
-                .multilineTextAlignment(.center)
-            HStack(spacing: 10) {
-                Button("Not now") { onDismiss() }
-                    .buttonStyle(SecondaryButtonStyle())
-                Button("Star on GitHub") { onStar() }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .keyboardShortcut(.defaultAction)
-            }
-            .padding(.top, 4)
+            .padding(.top, 32)
+            .padding(.horizontal, 28)
+            .padding(.bottom, 28)
+
+            closeButton(action: onDismiss)
         }
-        .padding(24)
-        .frame(width: 340)
+        .frame(width: 360)
         .background(Color(white: 0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
