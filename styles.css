@@ -928,6 +928,15 @@ h1 {
   color: var(--muted);
   font-size: 13px;
 }
+.install-lede kbd {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text);
+}
 .inline-logo {
   width: 16px;
   height: 16px;
