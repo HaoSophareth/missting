@@ -6,12 +6,6 @@ See what's coming up, get a nudge before it starts, and auto-join at exactly the
 
 ---
 
-## Get access
-
-Missting is in private beta. To join, email **haosophareth070@gmail.com** with the subject **"Missting beta"** and I'll whitelist your Google account.
-
----
-
 ## Install
 
 > Requires macOS 12 or later.
@@ -22,13 +16,13 @@ No download needed — press `⌘ Command + Space`, type **Terminal**, press Ret
 curl -fsSL https://raw.githubusercontent.com/HaoSophareth/missting/main/install.sh | bash
 ```
 
-It installs the latest version straight into `/Applications` and opens it. Then click the 🌻 in your menu bar → **Sign in with Google** → grant calendar access.
+It installs the latest version straight into `/Applications` and opens it. Then click the <img src="favicon.png" width="16" height="16" alt="Missting" align="absmiddle"> in your menu bar → **Sign in with Google** → grant calendar access.
 
 Missting is a free beta and not yet notarized by Apple, which is why a normal double-click on the downloaded zip shows a false "damaged" warning — the line above avoids that entirely.
 
 ### Updates
 
-Missting updates itself: it checks for new releases daily and installs them in the background (or right-click the 🌻 → **Check for Updates…**). You only ever run the install line once.
+Missting updates itself: it checks for new releases daily and installs them in the background (or right-click the <img src="favicon.png" width="16" height="16" alt="Missting" align="absmiddle"> → **Check for Updates…**). You only ever run the install line once.
 
 ---
 

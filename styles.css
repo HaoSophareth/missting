@@ -21,6 +21,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   font-family: "Inter", sans-serif;
   color: var(--text);
   background:
@@ -58,13 +59,10 @@ a:focus-visible {
 }
 
 .page-footer {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  margin: 32px 0 0;
+  text-align: center;
   font-size: 0.74rem;
   color: rgba(255, 255, 255, 0.2);
-  white-space: nowrap;
 }
 
 .page-footer a {
@@ -746,13 +744,14 @@ h1 {
 
 @media (max-width: 900px) {
   .hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     min-height: auto;
     padding: 28px 0 10px;
   }
 
   .copy {
     max-width: none;
+    min-width: 0;
   }
 
   .preview-stack {
@@ -761,6 +760,12 @@ h1 {
 
   .features {
     grid-template-columns: 1fr;
+  }
+
+  /* Decorative floating-alert demo has nowhere to sit once the hero
+     drops to a single column — it would just cover the heading. */
+  .notif-toast {
+    display: none;
   }
 }
 
@@ -779,7 +784,18 @@ h1 {
   }
 
   .preview-stack {
-    max-width: none;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .chip-row {
+    flex-wrap: wrap;
+  }
+
+  /* Let the "auto-join..." phrase wrap instead of forcing an
+     unbreakable line wider than a narrow viewport. */
+  .lede .nowrap {
+    white-space: normal;
   }
 }
 
@@ -914,7 +930,7 @@ h1 {
   font-size: 13px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
 .install-steps kbd {
   background: var(--panel-2);
@@ -925,10 +941,27 @@ h1 {
   font-family: inherit;
   color: var(--text);
 }
+.inline-logo {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+  border-radius: 4px;
+}
+.install-hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  opacity: 0.8;
+  max-width: 48ch;
+}
 .install-cmd {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  margin-top: 6px;
   background: var(--panel);
   border: 1px solid rgba(79, 143, 247, 0.45);
   border-radius: 12px;
@@ -937,6 +970,7 @@ h1 {
 }
 .install-cmd code {
   flex: 1;
+  min-width: 0;
   font: 13px/1.5 "SF Mono", ui-monospace, Menlo, monospace;
   color: var(--text);
   overflow-x: auto;

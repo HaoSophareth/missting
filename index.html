@@ -31,13 +31,19 @@
           <div class="install-help">
             <p class="install-title">Install for Mac</p>
             <ol class="install-steps">
-              <li>Press <kbd>⌘</kbd> <kbd>Space</kbd>, type <strong>Terminal</strong>, press Return</li>
-              <li>Paste this line, press Return, and Missting opens:</li>
+              <li>
+                Press <kbd>⌘</kbd> <kbd>Space</kbd>, type <strong>Terminal</strong>, press Return
+                <span class="install-hint">Terminal comes built into every Mac — it's just a window for typing a command, and it's the safest way to install Missting before it's notarized by Apple.</span>
+              </li>
+              <li>
+                Paste this line and press Return:
+                <div class="install-cmd">
+                  <code id="install-cmd-text">curl -fsSL https://raw.githubusercontent.com/HaoSophareth/missting/main/install.sh | bash</code>
+                  <button type="button" class="copy-btn" id="install-copy">Copy</button>
+                </div>
+              </li>
+              <li>Missting opens on its own — look for <img src="favicon.png" width="16" height="16" alt="Missting" class="inline-logo"> in your menu bar.</li>
             </ol>
-            <div class="install-cmd">
-              <code id="install-cmd-text">curl -fsSL https://raw.githubusercontent.com/HaoSophareth/missting/main/install.sh | bash</code>
-              <button type="button" class="copy-btn" id="install-copy">Copy</button>
-            </div>
             <p class="install-why">Free beta, not yet notarized by Apple, so a normal download shows a false "damaged" warning. This installs the latest version and it updates itself from there.</p>
           </div>
         </div>
