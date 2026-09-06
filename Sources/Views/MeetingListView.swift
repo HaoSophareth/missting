@@ -440,32 +440,54 @@ struct MeetingListView: View {
 /// A tiny looping animation (no video asset — just SwiftUI) that reinforces
 /// the drag instruction: the icon slides back and forth along a track.
 private struct DragHintView: View {
-    @State private var animate = false
-    private let travel: CGFloat = 64
+    @State private var atSafeSpot = false
+
+    private let barWidth: CGFloat = 220
+    private let barHeight: CGFloat = 22
+    private let iconSize: CGFloat = 13
+    private let edgeInset: CGFloat = 5
 
     var body: some View {
         ZStack(alignment: .leading) {
             Capsule()
-                .fill(Color(white: 0.13))
-                .frame(width: travel + 24, height: 20)
-            Group {
-                if let img = AppResources.sunflower() {
-                    Image(nsImage: img)
-                        .resizable()
-                        .frame(width: 14, height: 14)
-                } else {
-                    Circle()
-                        .fill(Color(red: 0.31, green: 0.56, blue: 0.97))
-                        .frame(width: 14, height: 14)
+                .fill(Color(white: 0.12))
+                .frame(width: barWidth, height: barHeight)
+
+            // Stand-ins for the system icons (Wi-Fi, Bluetooth, battery, …)
+            // that always stay put at the right — the sunflower's real
+            // "safe spot" is right next to this cluster.
+            HStack(spacing: 6) {
+                ForEach(["wifi", "bolt.fill", "magnifyingglass"], id: \.self) { name in
+                    Image(systemName: name)
+                        .font(.system(size: 8.5))
+                        .foregroundColor(Color(white: 0.4))
                 }
             }
-            .padding(.leading, 4)
-            .offset(x: animate ? travel : 0)
+            .frame(width: barWidth - edgeInset * 2, alignment: .trailing)
+            .padding(.horizontal, edgeInset)
+
+            sunflowerIcon
+                .offset(x: atSafeSpot
+                    ? barWidth - iconSize - edgeInset - 42
+                    : edgeInset)
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
-                animate = true
+            withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
+                atSafeSpot = true
             }
+        }
+    }
+
+    @ViewBuilder
+    private var sunflowerIcon: some View {
+        if let img = AppResources.sunflower() {
+            Image(nsImage: img)
+                .resizable()
+                .frame(width: iconSize, height: iconSize)
+        } else {
+            Circle()
+                .fill(Color(red: 0.31, green: 0.56, blue: 0.97))
+                .frame(width: iconSize, height: iconSize)
         }
     }
 }
