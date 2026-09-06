@@ -134,22 +134,20 @@ struct MeetingListView: View {
                 onToggle: { menuBarIconConfirmed.toggle() },
                 showDragHint: true
             )
-            .padding(.bottom, 8)
-
-            Button("Continue") {
+            .padding(.bottom, 16)
+        }
+        .frame(width: 300)
+        // No manual "Continue" — once every item is checked, there's nothing
+        // left to decide, so move straight into Settings on its own.
+        .onChange(of: menuBarIconConfirmed) { confirmed in
+            guard confirmed else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     showChecklist = false
                     showSettings = true
                 }
             }
-            .buttonStyle(PrimaryButtonStyle())
-            .keyboardShortcut(.defaultAction)
-            .disabled(!menuBarIconConfirmed)
-            .opacity(menuBarIconConfirmed ? 1 : 0.4)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
         }
-        .frame(width: 300)
     }
 
     private func checklistRow(
