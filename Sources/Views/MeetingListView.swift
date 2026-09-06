@@ -1,4 +1,5 @@
 import SwiftUI
+import ImageIO
 
 struct MeetingListView: View {
     @EnvironmentObject private var calendar: CalendarManager
@@ -438,31 +439,82 @@ struct MeetingListView: View {
 }
 
 /// Plays the real screen-recorded loop of dragging the icon across the
-/// actual menu bar — an NSImageView animates GIF frames natively, which
-/// SwiftUI's Image cannot do on its own.
+/// actual menu bar.
 private struct DragHintView: View {
-    private let width: CGFloat = 220
+    private let width: CGFloat = 236
     private let aspectRatio: CGFloat = 334.0 / 50.0 // native GIF dimensions
 
     var body: some View {
         GIFPlayerView(url: AppResources.menuBarDragGIF())
+            // Fit at the native aspect ratio, uncropped — the recording has
+            // the cursor and icon moving through different vertical
+            // positions frame to frame, so any fixed vertical crop ends up
+            // slicing through them at some point in the loop.
             .frame(width: width, height: width / aspectRatio)
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }
 
+/// NSImageView's built-in `animates` GIF playback ignores `imageScaling` for
+/// the animated frames themselves (it draws them near-native-size and lets
+/// the view clip whatever doesn't fit), so at this small a size it cropped
+/// instead of shrinking. Decoding frames manually and driving them through
+/// as plain static images makes `imageScaling` apply reliably every frame.
 private struct GIFPlayerView: NSViewRepresentable {
     let url: URL?
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSImageView {
         let imageView = NSImageView()
         imageView.imageScaling = .scaleProportionallyUpOrDown
-        imageView.animates = true
-        if let url, let image = NSImage(contentsOf: url) {
-            imageView.image = image
-        }
+        imageView.imageAlignment = .alignCenter
+        if let url { context.coordinator.start(url: url, imageView: imageView) }
         return imageView
     }
 
     func updateNSView(_ nsView: NSImageView, context: Context) {}
+
+    final class Coordinator {
+        private var timer: Timer?
+        private var frames: [(image: NSImage, delay: TimeInterval)] = []
+        private var index = 0
+
+        func start(url: URL, imageView: NSImageView) {
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return }
+            let count = CGImageSourceGetCount(source)
+            guard count > 0 else { return }
+
+            for i in 0..<count {
+                guard let cgImage = CGImageSourceCreateImageAtIndex(source, i, nil) else { continue }
+                var delay = 0.1
+                if let props = CGImageSourceCopyPropertiesAtIndex(source, i, nil) as? [CFString: Any],
+                   let gifProps = props[kCGImagePropertyGIFDictionary] as? [CFString: Any] {
+                    if let unclamped = gifProps[kCGImagePropertyGIFUnclampedDelayTime] as? Double, unclamped > 0 {
+                        delay = unclamped
+                    } else if let clamped = gifProps[kCGImagePropertyGIFDelayTime] as? Double, clamped > 0 {
+                        delay = clamped
+                    }
+                }
+                let size = NSSize(width: cgImage.width, height: cgImage.height)
+                frames.append((NSImage(cgImage: cgImage, size: size), max(delay, 0.02)))
+            }
+
+            guard !frames.isEmpty else { return }
+            imageView.image = frames[0].image
+            guard frames.count > 1 else { return }
+            scheduleNext(imageView: imageView)
+        }
+
+        private func scheduleNext(imageView: NSImageView) {
+            timer = Timer.scheduledTimer(withTimeInterval: frames[index].delay, repeats: false) { [weak self] _ in
+                guard let self else { return }
+                self.index = (self.index + 1) % self.frames.count
+                imageView.image = self.frames[self.index].image
+                self.scheduleNext(imageView: imageView)
+            }
+        }
+
+        deinit { timer?.invalidate() }
+    }
 }

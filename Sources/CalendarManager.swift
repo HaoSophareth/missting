@@ -43,6 +43,10 @@ struct CalendarInfo: Identifiable, Equatable {
     let id: String
     let name: String
     let colorHex: String?
+    /// Whether this calendar is checked in the user's actual Google Calendar
+    /// app — used only to pick a sensible one-time default (see
+    /// `applyDefaultsForNewCalendars`), not to hide it from Settings.
+    let isSelectedInGoogle: Bool
 }
 
 final class CalendarManager: ObservableObject {
@@ -139,6 +143,7 @@ final class CalendarManager: ObservableObject {
     private func fetchFromAllCalendars(token: String) async throws -> (meetings: [Meeting], hasMinerva: Bool) {
         let calendars = try await fetchCalendarList(token: token)
         let now = Date()
+        await MainActor.run { self.applyDefaultsForNewCalendars(calendars) }
         let disabled = SettingsManager.shared.disabledCalendarIds
 
         // Publish available calendars on main actor
@@ -211,6 +216,31 @@ final class CalendarManager: ObservableObject {
             ?? sorted[0]
     }
 
+    /// The first time any given calendar shows up, seed its enabled/disabled
+    /// state from whether it was checked in Google Calendar, so someone's
+    /// existing meeting list doesn't suddenly change just because Settings
+    /// now lists every accessible calendar instead of only the selected
+    /// ones. After that first time, the user's own toggle in Settings is
+    /// authoritative and this never touches that calendar again.
+    private func applyDefaultsForNewCalendars(_ calendars: [CalendarInfo]) {
+        let settings = SettingsManager.shared
+        var seen = settings.seenCalendarIds
+        var disabled = settings.disabledCalendarIds
+        var changed = false
+
+        for cal in calendars where !seen.contains(cal.id) {
+            seen.insert(cal.id)
+            if !cal.isSelectedInGoogle {
+                disabled.insert(cal.id)
+            }
+            changed = true
+        }
+
+        guard changed else { return }
+        settings.seenCalendarIds = seen
+        settings.disabledCalendarIds = disabled
+    }
+
     private func fetchCalendarList(token: String) async throws -> [CalendarInfo] {
         var allItems: [CalendarItem] = []
         var pageToken: String? = nil
@@ -231,10 +261,18 @@ final class CalendarManager: ObservableObject {
             pageToken = body.nextPageToken
         } while pageToken != nil
 
-        // Only expose calendars the user has checked in Google Calendar
-        return allItems
-            .filter { $0.selected == true }
-            .map { CalendarInfo(id: $0.id, name: $0.summary ?? $0.id, colorHex: $0.backgroundColor) }
+        // Expose every calendar the account has reader access to, not just
+        // the ones checked in Google Calendar's own UI — otherwise a
+        // calendar someone forgot they'd hidden there never even shows up
+        // as an option in Missting.
+        return allItems.map {
+            CalendarInfo(
+                id: $0.id,
+                name: $0.summary ?? $0.id,
+                colorHex: $0.backgroundColor,
+                isSelectedInGoogle: $0.selected == true
+            )
+        }
     }
 
     private func fetchEvents(token: String, calendarId: String, now: Date) async throws -> [Meeting] {
