@@ -130,7 +130,7 @@ struct MeetingListView: View {
             checklistRow(
                 done: menuBarIconConfirmed,
                 title: "Menu bar icon",
-                subtitle: "Hold ⌘ and drag it just left of Wi-Fi so it never gets hidden.",
+                subtitle: "Hold ⌘ and drag it just left of Control Center so it never gets hidden.",
                 onToggle: { menuBarIconConfirmed.toggle() },
                 showDragHint: true
             )
@@ -440,7 +440,8 @@ struct MeetingListView: View {
 /// A tiny looping animation (no video asset — just SwiftUI) that reinforces
 /// the drag instruction: dimmed and buried among a crowd of other menu bar
 /// apps on the left, then sliding to sit crisp and full-opacity right next
-/// to Wi-Fi — the one spot that never gets pushed off or hidden by the notch.
+/// to the actual Control Center glyph — the one spot that never gets pushed
+/// off or hidden by the notch.
 private struct DragHintView: View {
     @State private var atSafeSpot = false
 
@@ -453,18 +454,13 @@ private struct DragHintView: View {
     private let crowdSpacing: CGFloat = 4
     private let crowdCount = 3
 
-    private let systemIconSize: CGFloat = 8.5
-    private let systemSpacing: CGFloat = 6
-    private let systemIcons = ["wifi", "bolt.fill", "magnifyingglass"]
+    private let controlCenterSize: CGFloat = 11
 
     private var crowdWidth: CGFloat {
         CGFloat(crowdCount) * crowdIconSize + CGFloat(crowdCount - 1) * crowdSpacing
     }
-    private var systemClusterWidth: CGFloat {
-        CGFloat(systemIcons.count) * systemIconSize + CGFloat(systemIcons.count - 1) * systemSpacing
-    }
     private var hiddenOffsetX: CGFloat { edgeInset + crowdWidth + 6 }
-    private var safeOffsetX: CGFloat { barWidth - edgeInset - systemClusterWidth - 4 - iconSize }
+    private var safeOffsetX: CGFloat { barWidth - edgeInset - controlCenterSize - 6 - iconSize }
 
     var body: some View {
         VStack(spacing: 4) {
@@ -484,16 +480,12 @@ private struct DragHintView: View {
                 }
                 .padding(.leading, edgeInset)
 
-                // The system icons that never move — the safe spot is right
-                // before this cluster, where nothing can ever cover it.
-                HStack(spacing: systemSpacing) {
-                    ForEach(systemIcons, id: \.self) { name in
-                        Image(systemName: name)
-                            .font(.system(size: systemIconSize))
-                            .foregroundColor(Color(white: 0.4))
-                    }
-                }
-                .frame(width: barWidth - edgeInset, alignment: .trailing)
+                // The actual Control Center glyph — it never moves, so the
+                // safe spot is right before it, where nothing can cover it.
+                Image(systemName: "switch.2")
+                    .font(.system(size: controlCenterSize))
+                    .foregroundColor(Color(white: 0.45))
+                    .frame(width: barWidth - edgeInset, alignment: .trailing)
 
                 sunflowerIcon
                     .opacity(atSafeSpot ? 1 : 0.5)
@@ -505,7 +497,7 @@ private struct DragHintView: View {
                 Text("easily hidden")
                     .foregroundColor(Color(red: 0.75, green: 0.45, blue: 0.4))
                 Spacer()
-                Text("always visible")
+                Text("Control Center")
                     .foregroundColor(Color(red: 0.2, green: 0.78, blue: 0.42))
             }
             .font(.system(size: 9, weight: .medium))
