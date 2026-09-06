@@ -12,7 +12,20 @@ enum AppResources {
         loadImage(name: "sunflower-gray", ext: "png")
     }
 
+    static func menuBarDragGIF() -> URL? {
+        resourceURL(name: "menu-bar-drag", ext: "gif")
+    }
+
     // MARK: - Private
+
+    private static func resourceURL(name: String, ext: String) -> URL? {
+        if let url = Bundle.main.url(forResource: name, withExtension: ext) {
+            return url
+        }
+        let direct = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Resources/\(name).\(ext)")
+        return FileManager.default.fileExists(atPath: direct.path) ? direct : nil
+    }
 
     private static func loadImage(name: String, ext: String) -> NSImage? {
         // Strategy 1: standard Bundle.main lookup (works in most cases)

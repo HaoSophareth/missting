@@ -25,6 +25,7 @@ cp "Resources/alarm-clock.png" "$BUNDLE/Contents/Resources/alarm-clock.png"
 cp "Resources/sunflower.png" "$BUNDLE/Contents/Resources/sunflower.png"
 cp "Resources/sunflower-gray.png" "$BUNDLE/Contents/Resources/sunflower-gray.png"
 cp "Resources/Missting.icns" "$BUNDLE/Contents/Resources/Missting.icns"
+cp "Resources/menu-bar-drag.gif" "$BUNDLE/Contents/Resources/menu-bar-drag.gif"
 
 # Embed Sparkle.framework (the executable links it via @rpath ../Frameworks)
 echo "Embedding Sparkle.framework..."

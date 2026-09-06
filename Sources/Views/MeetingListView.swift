@@ -437,118 +437,32 @@ struct MeetingListView: View {
     }
 }
 
-/// A tiny looping animation (no video asset — just SwiftUI) that reinforces
-/// the drag instruction: buried, dimmed, among a crowd of other menu bar
-/// apps on the left, then traveling all the way across to sit crisp and
-/// full-opacity right before the real system icon cluster — the one spot
-/// that never gets pushed off or hidden by the notch.
+/// Plays the real screen-recorded loop of dragging the icon across the
+/// actual menu bar — an NSImageView animates GIF frames natively, which
+/// SwiftUI's Image cannot do on its own.
 private struct DragHintView: View {
-    @State private var atSafeSpot = false
-
-    private let barWidth: CGFloat = 232
-    private let barHeight: CGFloat = 22
-    private let iconSize: CGFloat = 13
-    private let edgeInset: CGFloat = 6
-
-    private let crowdIconSize: CGFloat = 8
-    private let crowdSpacing: CGFloat = 4
-    private let crowdCount = 3
-
-    private let systemIconSize: CGFloat = 9
-    private let systemSpacing: CGFloat = 7
-    // Rough total width of the system cluster below (input source letter,
-    // Bluetooth, battery, Wi-Fi, Spotlight) — close enough for this mock,
-    // not pixel-measured.
-    private let systemClusterWidth: CGFloat = 86
-
-    private var crowdWidth: CGFloat {
-        CGFloat(crowdCount) * crowdIconSize + CGFloat(crowdCount - 1) * crowdSpacing
-    }
-    private var hiddenOffsetX: CGFloat { edgeInset + crowdWidth + 6 }
-    private var safeOffsetX: CGFloat { barWidth - edgeInset - systemClusterWidth - 6 - iconSize }
+    private let width: CGFloat = 220
+    private let aspectRatio: CGFloat = 578.0 / 100.0 // native GIF dimensions
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            Capsule()
-                .fill(Color(white: 0.12))
-                .frame(width: barWidth, height: barHeight)
-
-            // Other menu bar apps crowding the left — where an icon can
-            // get squeezed out or covered by the notch.
-            HStack(spacing: crowdSpacing) {
-                ForEach(0..<crowdCount, id: \.self) { _ in
-                    Circle()
-                        .fill(Color(white: 0.28))
-                        .frame(width: crowdIconSize, height: crowdIconSize)
-                }
-            }
-            .padding(.leading, edgeInset)
-
-            // The real system icons — input source, Bluetooth, battery,
-            // Wi-Fi, Spotlight — that never move, so the safe spot is right
-            // before them, where nothing can ever cover it.
-            HStack(spacing: systemSpacing) {
-                Text("A")
-                    .font(.system(size: systemIconSize, weight: .semibold))
-                BluetoothGlyph()
-                    .stroke(Color(white: 0.45), lineWidth: 1)
-                    .frame(width: systemIconSize * 0.6, height: systemIconSize)
-                Image(systemName: "battery.100.bolt")
-                    .font(.system(size: systemIconSize))
-                Image(systemName: "wifi")
-                    .font(.system(size: systemIconSize))
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: systemIconSize))
-            }
-            .foregroundColor(Color(white: 0.45))
-            .frame(width: barWidth - edgeInset, alignment: .trailing)
-
-            sunflowerIcon
-                .opacity(atSafeSpot ? 1 : 0.5)
-                .offset(x: atSafeSpot ? safeOffsetX : hiddenOffsetX)
-        }
-        .frame(width: barWidth, height: barHeight)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
-                atSafeSpot = true
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var sunflowerIcon: some View {
-        if let img = AppResources.sunflower() {
-            Image(nsImage: img)
-                .resizable()
-                .frame(width: iconSize, height: iconSize)
-        } else {
-            Circle()
-                .fill(Color(red: 0.31, green: 0.56, blue: 0.97))
-                .frame(width: iconSize, height: iconSize)
-        }
+        GIFPlayerView(url: AppResources.menuBarDragGIF())
+            .frame(width: width, height: width / aspectRatio)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }
 
-/// SF Symbols has no Bluetooth glyph (Apple never shipped the trademarked
-/// rune), so the drag-hint mock draws the classic zigzag shape directly.
-private struct BluetoothGlyph: Shape {
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width, h = rect.height
-        let top    = CGPoint(x: rect.minX + w * 0.5,  y: rect.minY)
-        let bottom = CGPoint(x: rect.minX + w * 0.5,  y: rect.minY + h)
-        let upperLeft  = CGPoint(x: rect.minX,        y: rect.minY + h * 0.3)
-        let upperRight = CGPoint(x: rect.minX + w,    y: rect.minY + h * 0.3)
-        let lowerLeft  = CGPoint(x: rect.minX,        y: rect.minY + h * 0.7)
-        let lowerRight = CGPoint(x: rect.minX + w,    y: rect.minY + h * 0.7)
+private struct GIFPlayerView: NSViewRepresentable {
+    let url: URL?
 
-        var path = Path()
-        path.move(to: top)
-        path.addLine(to: upperRight)
-        path.addLine(to: lowerLeft)
-        path.addLine(to: bottom)
-        path.addLine(to: lowerRight)
-        path.addLine(to: upperLeft)
-        path.addLine(to: top)
-        return path
+    func makeNSView(context: Context) -> NSImageView {
+        let imageView = NSImageView()
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.animates = true
+        if let url, let image = NSImage(contentsOf: url) {
+            imageView.image = image
+        }
+        return imageView
     }
+
+    func updateNSView(_ nsView: NSImageView, context: Context) {}
 }
