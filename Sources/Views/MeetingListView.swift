@@ -387,10 +387,16 @@ struct MeetingListView: View {
     }
 
     private var authPrompt: some View {
-        // No logo or "Missting" heading here — the header above already
-        // says it, and the real sunflower is already visible in the menu
-        // bar right above this popover. Repeating both felt redundant.
         VStack(spacing: 12) {
+            if let img = AppResources.sunflower() {
+                Image(nsImage: img)
+                    .resizable()
+                    .frame(width: 40, height: 40)
+                    .padding(.bottom, 4)
+            }
+            Text("Welcome to Missting")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white)
             Text("Sign in with Google to see your upcoming meetings and get notified before they start.")
                 .font(.system(size: 11))
                 .foregroundColor(Color(white: 0.4))
