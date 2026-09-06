@@ -4,15 +4,15 @@
     <title>Missting</title>
     <link>https://github.com/HaoSophareth/missting</link>
     <item>
-      <title>Version 1.1.25</title>
-      <pubDate>Sun, 06 Sep 2026 02:59:39 +0000</pubDate>
-      <sparkle:version>1.1.25</sparkle:version>
-      <sparkle:shortVersionString>1.1.25</sparkle:shortVersionString>
+      <title>Version 1.1.26</title>
+      <pubDate>Sun, 06 Sep 2026 03:09:52 +0000</pubDate>
+      <sparkle:version>1.1.26</sparkle:version>
+      <sparkle:shortVersionString>1.1.26</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>12.0</sparkle:minimumSystemVersion>
-      <link>https://github.com/HaoSophareth/missting/releases/tag/v1.1.25</link>
+      <link>https://github.com/HaoSophareth/missting/releases/tag/v1.1.26</link>
       <enclosure
-        url="https://github.com/HaoSophareth/missting/releases/download/v1.1.25/Missting.zip"
-        sparkle:edSignature="8RbZ7xAKOqxvIBSkbK4i6a7jHhu61OV6bmkh03CKTIFvBToHYlgAXx8irHjk/N3wWhEP5QYyPp+Flx139N4oDw==" length="3355165"
+        url="https://github.com/HaoSophareth/missting/releases/download/v1.1.26/Missting.zip"
+        sparkle:edSignature="OrGNgW4WynKjXTH7bvVt90jf+QR0qrvlC3CsKNL0bg0Qi+WzgBqK91OO6luyDNE8rfyvrHgU0C4rAp/22NJFDg==" length="3243563"
         type="application/octet-stream"/>
     </item>
   </channel>
