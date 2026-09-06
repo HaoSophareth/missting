@@ -149,6 +149,11 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
+            } else {
+                // Match the breathing room other rows get before their
+                // divider — without the instructions block, the row's own
+                // 8pt bottom padding alone left this looking cramped.
+                Color.clear.frame(height: 6)
             }
 
             Divider().background(Color(white: 0.12))
