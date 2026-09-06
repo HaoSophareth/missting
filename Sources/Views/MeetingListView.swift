@@ -441,7 +441,7 @@ struct MeetingListView: View {
 /// Plays the real screen-recorded loop of dragging the icon across the
 /// actual menu bar.
 private struct DragHintView: View {
-    private let width: CGFloat = 236
+    private let width: CGFloat = 180
     private let aspectRatio: CGFloat = 334.0 / 40.0 // native video dimensions
 
     var body: some View {
@@ -467,6 +467,10 @@ private struct VideoLoopView: NSViewRepresentable {
     func updateNSView(_ nsView: PlayerLayerView, context: Context) {}
 
     final class Coordinator {
+        // Slower than real time so the drag motion — brief in the actual
+        // recording — reads clearly instead of flashing past.
+        private static let playbackRate: Float = 0.5
+
         private var player: AVPlayer?
         private var endObserver: NSObjectProtocol?
 
@@ -483,9 +487,9 @@ private struct VideoLoopView: NSViewRepresentable {
                 queue: .main
             ) { _ in
                 player.seek(to: .zero)
-                player.play()
+                player.rate = Self.playbackRate
             }
-            player.play()
+            player.rate = Self.playbackRate
         }
 
         deinit {
