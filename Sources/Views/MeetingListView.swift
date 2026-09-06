@@ -438,14 +438,14 @@ struct MeetingListView: View {
 }
 
 /// A tiny looping animation (no video asset — just SwiftUI) that reinforces
-/// the drag instruction: dimmed and buried among a crowd of other menu bar
-/// apps on the left, then sliding to sit crisp and full-opacity right next
-/// to the actual Control Center glyph — the one spot that never gets pushed
-/// off or hidden by the notch.
+/// the drag instruction: buried, dimmed, among a crowd of other menu bar
+/// apps on the left, then traveling all the way across to sit crisp and
+/// full-opacity right before the real system icon cluster — the one spot
+/// that never gets pushed off or hidden by the notch.
 private struct DragHintView: View {
     @State private var atSafeSpot = false
 
-    private let barWidth: CGFloat = 220
+    private let barWidth: CGFloat = 232
     private let barHeight: CGFloat = 22
     private let iconSize: CGFloat = 13
     private let edgeInset: CGFloat = 6
@@ -454,55 +454,60 @@ private struct DragHintView: View {
     private let crowdSpacing: CGFloat = 4
     private let crowdCount = 3
 
-    private let controlCenterSize: CGFloat = 11
+    private let systemIconSize: CGFloat = 9
+    private let systemSpacing: CGFloat = 7
+    // Rough total width of the system cluster below (input source letter,
+    // Bluetooth, battery, Wi-Fi, Spotlight) — close enough for this mock,
+    // not pixel-measured.
+    private let systemClusterWidth: CGFloat = 86
 
     private var crowdWidth: CGFloat {
         CGFloat(crowdCount) * crowdIconSize + CGFloat(crowdCount - 1) * crowdSpacing
     }
     private var hiddenOffsetX: CGFloat { edgeInset + crowdWidth + 6 }
-    private var safeOffsetX: CGFloat { barWidth - edgeInset - controlCenterSize - 6 - iconSize }
+    private var safeOffsetX: CGFloat { barWidth - edgeInset - systemClusterWidth - 6 - iconSize }
 
     var body: some View {
-        VStack(spacing: 4) {
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color(white: 0.12))
-                    .frame(width: barWidth, height: barHeight)
+        ZStack(alignment: .leading) {
+            Capsule()
+                .fill(Color(white: 0.12))
+                .frame(width: barWidth, height: barHeight)
 
-                // Other menu bar apps crowding the left — where an icon can
-                // get squeezed out or covered by the notch.
-                HStack(spacing: crowdSpacing) {
-                    ForEach(0..<crowdCount, id: \.self) { _ in
-                        Circle()
-                            .fill(Color(white: 0.28))
-                            .frame(width: crowdIconSize, height: crowdIconSize)
-                    }
+            // Other menu bar apps crowding the left — where an icon can
+            // get squeezed out or covered by the notch.
+            HStack(spacing: crowdSpacing) {
+                ForEach(0..<crowdCount, id: \.self) { _ in
+                    Circle()
+                        .fill(Color(white: 0.28))
+                        .frame(width: crowdIconSize, height: crowdIconSize)
                 }
-                .padding(.leading, edgeInset)
-
-                // The actual Control Center glyph — it never moves, so the
-                // safe spot is right before it, where nothing can cover it.
-                Image(systemName: "switch.2")
-                    .font(.system(size: controlCenterSize))
-                    .foregroundColor(Color(white: 0.45))
-                    .frame(width: barWidth - edgeInset, alignment: .trailing)
-
-                sunflowerIcon
-                    .opacity(atSafeSpot ? 1 : 0.5)
-                    .offset(x: atSafeSpot ? safeOffsetX : hiddenOffsetX)
             }
-            .frame(width: barWidth, height: barHeight)
+            .padding(.leading, edgeInset)
 
-            HStack {
-                Text("easily hidden")
-                    .foregroundColor(Color(red: 0.75, green: 0.45, blue: 0.4))
-                Spacer()
-                Text("Control Center")
-                    .foregroundColor(Color(red: 0.2, green: 0.78, blue: 0.42))
+            // The real system icons — input source, Bluetooth, battery,
+            // Wi-Fi, Spotlight — that never move, so the safe spot is right
+            // before them, where nothing can ever cover it.
+            HStack(spacing: systemSpacing) {
+                Text("A")
+                    .font(.system(size: systemIconSize, weight: .semibold))
+                BluetoothGlyph()
+                    .stroke(Color(white: 0.45), lineWidth: 1)
+                    .frame(width: systemIconSize * 0.6, height: systemIconSize)
+                Image(systemName: "battery.100.bolt")
+                    .font(.system(size: systemIconSize))
+                Image(systemName: "wifi")
+                    .font(.system(size: systemIconSize))
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: systemIconSize))
             }
-            .font(.system(size: 9, weight: .medium))
-            .frame(width: barWidth)
+            .foregroundColor(Color(white: 0.45))
+            .frame(width: barWidth - edgeInset, alignment: .trailing)
+
+            sunflowerIcon
+                .opacity(atSafeSpot ? 1 : 0.5)
+                .offset(x: atSafeSpot ? safeOffsetX : hiddenOffsetX)
         }
+        .frame(width: barWidth, height: barHeight)
         .onAppear {
             withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
                 atSafeSpot = true
@@ -521,5 +526,29 @@ private struct DragHintView: View {
                 .fill(Color(red: 0.31, green: 0.56, blue: 0.97))
                 .frame(width: iconSize, height: iconSize)
         }
+    }
+}
+
+/// SF Symbols has no Bluetooth glyph (Apple never shipped the trademarked
+/// rune), so the drag-hint mock draws the classic zigzag shape directly.
+private struct BluetoothGlyph: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width, h = rect.height
+        let top    = CGPoint(x: rect.minX + w * 0.5,  y: rect.minY)
+        let bottom = CGPoint(x: rect.minX + w * 0.5,  y: rect.minY + h)
+        let upperLeft  = CGPoint(x: rect.minX,        y: rect.minY + h * 0.3)
+        let upperRight = CGPoint(x: rect.minX + w,    y: rect.minY + h * 0.3)
+        let lowerLeft  = CGPoint(x: rect.minX,        y: rect.minY + h * 0.7)
+        let lowerRight = CGPoint(x: rect.minX + w,    y: rect.minY + h * 0.7)
+
+        var path = Path()
+        path.move(to: top)
+        path.addLine(to: upperRight)
+        path.addLine(to: lowerLeft)
+        path.addLine(to: bottom)
+        path.addLine(to: lowerRight)
+        path.addLine(to: upperLeft)
+        path.addLine(to: top)
+        return path
     }
 }
