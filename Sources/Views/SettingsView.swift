@@ -124,27 +124,32 @@ struct SettingsView: View {
             .padding(.top, 14)
             .padding(.bottom, 8)
 
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Missting auto-detects your class join links from your Minerva Academic calendar. Follow these steps to connect it:")
-                    .font(.system(size: 11))
-                    .foregroundColor(Color(white: 0.4))
-                    .fixedSize(horizontal: false, vertical: true)
+            // Once connected there's nothing left to do, so the setup
+            // instructions would just be clutter — only show them while
+            // still needed.
+            if !calendar.minervaCalendarConnected {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Missting auto-detects your class join links from your Minerva Academic calendar. Follow these steps to connect it:")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(white: 0.4))
+                        .fixedSize(horizontal: false, vertical: true)
 
-                setupStep(
-                    number: "1",
-                    text: "On **Forum**, open your profile menu → **Edit Profile** → scroll to the bottom → click **Copy Calendar Link**"
-                )
-                setupStep(
-                    number: "2",
-                    text: "Open **Google Calendar** → click **+** next to \"Other calendars\" → **From URL** → paste the link → **Add calendar**"
-                )
-                setupStep(
-                    number: "3",
-                    text: "Return here and refresh — the status above will turn **green** once your classes are detected"
-                )
+                    setupStep(
+                        number: "1",
+                        text: "On **Forum**, open your profile menu → **Edit Profile** → scroll to the bottom → click **Copy Calendar Link**"
+                    )
+                    setupStep(
+                        number: "2",
+                        text: "Open **Google Calendar** → click **+** next to \"Other calendars\" → **From URL** → paste the link → **Add calendar**"
+                    )
+                    setupStep(
+                        number: "3",
+                        text: "Return here and refresh — the status above will turn **green** once your classes are detected"
+                    )
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 20)
 
             Divider().background(Color(white: 0.12))
 
