@@ -144,6 +144,8 @@ struct MeetingListView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             .keyboardShortcut(.defaultAction)
+            .disabled(!menuBarIconConfirmed)
+            .opacity(menuBarIconConfirmed ? 1 : 0.4)
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
