@@ -205,7 +205,7 @@ private struct MenuBarTipView: View {
                     .font(.headline)
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
-                Text("Hold ⌘ and drag it next to Wi-Fi\nor Bluetooth to keep it visible.")
+                Text("Hold ⌘ and drag it just left of Wi-Fi\nto keep it visible.")
                     .font(.system(size: 12.5))
                     .foregroundColor(Color(white: 0.6))
                     .multilineTextAlignment(.center)

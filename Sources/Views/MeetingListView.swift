@@ -130,7 +130,7 @@ struct MeetingListView: View {
             checklistRow(
                 done: menuBarIconConfirmed,
                 title: "Menu bar icon",
-                subtitle: "Hold ⌘ and drag it next to Wi-Fi or Bluetooth so it never gets hidden.",
+                subtitle: "Hold ⌘ and drag it just left of Wi-Fi so it never gets hidden.",
                 onToggle: { menuBarIconConfirmed.toggle() },
                 showDragHint: true
             )
