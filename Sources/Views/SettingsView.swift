@@ -148,10 +148,10 @@ struct SettingsView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
             } else {
-                // Match the breathing room other rows get before their
-                // divider — without the instructions block, the row's own
-                // 8pt bottom padding alone left this looking cramped.
-                Color.clear.frame(height: 6)
+                // Match the Calendars section's own end-of-content spacer
+                // above, so both sections give the same breathing room
+                // before their divider.
+                Color.clear.frame(height: 8)
             }
 
             Divider().background(Color(white: 0.12))
@@ -166,16 +166,16 @@ struct SettingsView: View {
                 MenuBarManager.shared.closePopover()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "star")
+                    Image(systemName: "star.fill")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(white: 0.7))
+                        .foregroundColor(Color(red: 1, green: 0.78, blue: 0.2))
                     Text("Star Missting on GitHub")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white)
                     Spacer()
                     Image(systemName: "arrow.up.right")
                         .font(.system(size: 11))
-                        .foregroundColor(Color(white: 0.35))
+                        .foregroundColor(Color(white: 0.45))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
