@@ -17,7 +17,7 @@ jobs:
           # branch ruleset on main doesn't exempt — only the repo owner's
           # account bypasses the required-PR rule. This token lets the final
           # "Update appcast on main" push land the same way it always did.
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN1 }}
 
       - name: Stamp version from tag
         run: |
