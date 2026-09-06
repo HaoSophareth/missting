@@ -12,8 +12,8 @@ enum AppResources {
         loadImage(name: "sunflower-gray", ext: "png")
     }
 
-    static func menuBarDragGIF() -> URL? {
-        resourceURL(name: "menu-bar-drag", ext: "gif")
+    static func menuBarDragVideo() -> URL? {
+        resourceURL(name: "menu-bar-drag", ext: "mp4")
     }
 
     // MARK: - Private
