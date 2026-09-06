@@ -166,9 +166,9 @@ struct SettingsView: View {
                 MenuBarManager.shared.closePopover()
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "star.fill")
+                    Image(systemName: "star")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(red: 1, green: 0.78, blue: 0.2))
+                        .foregroundColor(Color(white: 0.7))
                     Text("Star Missting on GitHub")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white)
