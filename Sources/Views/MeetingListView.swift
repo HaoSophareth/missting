@@ -438,38 +438,78 @@ struct MeetingListView: View {
 }
 
 /// A tiny looping animation (no video asset — just SwiftUI) that reinforces
-/// the drag instruction: the icon slides back and forth along a track.
+/// the drag instruction: dimmed and buried among a crowd of other menu bar
+/// apps on the left, then sliding to sit crisp and full-opacity right next
+/// to Wi-Fi — the one spot that never gets pushed off or hidden by the notch.
 private struct DragHintView: View {
     @State private var atSafeSpot = false
 
     private let barWidth: CGFloat = 220
     private let barHeight: CGFloat = 22
     private let iconSize: CGFloat = 13
-    private let edgeInset: CGFloat = 5
+    private let edgeInset: CGFloat = 6
+
+    private let crowdIconSize: CGFloat = 8
+    private let crowdSpacing: CGFloat = 4
+    private let crowdCount = 3
+
+    private let systemIconSize: CGFloat = 8.5
+    private let systemSpacing: CGFloat = 6
+    private let systemIcons = ["wifi", "bolt.fill", "magnifyingglass"]
+
+    private var crowdWidth: CGFloat {
+        CGFloat(crowdCount) * crowdIconSize + CGFloat(crowdCount - 1) * crowdSpacing
+    }
+    private var systemClusterWidth: CGFloat {
+        CGFloat(systemIcons.count) * systemIconSize + CGFloat(systemIcons.count - 1) * systemSpacing
+    }
+    private var hiddenOffsetX: CGFloat { edgeInset + crowdWidth + 6 }
+    private var safeOffsetX: CGFloat { barWidth - edgeInset - systemClusterWidth - 4 - iconSize }
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            Capsule()
-                .fill(Color(white: 0.12))
-                .frame(width: barWidth, height: barHeight)
+        VStack(spacing: 4) {
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color(white: 0.12))
+                    .frame(width: barWidth, height: barHeight)
 
-            // Stand-ins for the system icons (Wi-Fi, Bluetooth, battery, …)
-            // that always stay put at the right — the sunflower's real
-            // "safe spot" is right next to this cluster.
-            HStack(spacing: 6) {
-                ForEach(["wifi", "bolt.fill", "magnifyingglass"], id: \.self) { name in
-                    Image(systemName: name)
-                        .font(.system(size: 8.5))
-                        .foregroundColor(Color(white: 0.4))
+                // Other menu bar apps crowding the left — where an icon can
+                // get squeezed out or covered by the notch.
+                HStack(spacing: crowdSpacing) {
+                    ForEach(0..<crowdCount, id: \.self) { _ in
+                        Circle()
+                            .fill(Color(white: 0.28))
+                            .frame(width: crowdIconSize, height: crowdIconSize)
+                    }
                 }
-            }
-            .frame(width: barWidth - edgeInset * 2, alignment: .trailing)
-            .padding(.horizontal, edgeInset)
+                .padding(.leading, edgeInset)
 
-            sunflowerIcon
-                .offset(x: atSafeSpot
-                    ? barWidth - iconSize - edgeInset - 42
-                    : edgeInset)
+                // The system icons that never move — the safe spot is right
+                // before this cluster, where nothing can ever cover it.
+                HStack(spacing: systemSpacing) {
+                    ForEach(systemIcons, id: \.self) { name in
+                        Image(systemName: name)
+                            .font(.system(size: systemIconSize))
+                            .foregroundColor(Color(white: 0.4))
+                    }
+                }
+                .frame(width: barWidth - edgeInset, alignment: .trailing)
+
+                sunflowerIcon
+                    .opacity(atSafeSpot ? 1 : 0.5)
+                    .offset(x: atSafeSpot ? safeOffsetX : hiddenOffsetX)
+            }
+            .frame(width: barWidth, height: barHeight)
+
+            HStack {
+                Text("easily hidden")
+                    .foregroundColor(Color(red: 0.75, green: 0.45, blue: 0.4))
+                Spacer()
+                Text("always visible")
+                    .foregroundColor(Color(red: 0.2, green: 0.78, blue: 0.42))
+            }
+            .font(.system(size: 9, weight: .medium))
+            .frame(width: barWidth)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
