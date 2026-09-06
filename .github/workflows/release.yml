@@ -12,6 +12,12 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Default GITHUB_TOKEN pushes as the github-actions bot, which the
+          # branch ruleset on main doesn't exempt — only the repo owner's
+          # account bypasses the required-PR rule. This token lets the final
+          # "Update appcast on main" push land the same way it always did.
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Stamp version from tag
         run: |
