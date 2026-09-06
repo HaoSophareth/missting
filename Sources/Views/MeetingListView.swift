@@ -444,7 +444,7 @@ struct MeetingListView: View {
 /// SwiftUI's Image cannot do on its own.
 private struct DragHintView: View {
     private let width: CGFloat = 220
-    private let aspectRatio: CGFloat = 578.0 / 100.0 // native GIF dimensions
+    private let aspectRatio: CGFloat = 334.0 / 50.0 // native GIF dimensions
 
     var body: some View {
         GIFPlayerView(url: AppResources.menuBarDragGIF())
