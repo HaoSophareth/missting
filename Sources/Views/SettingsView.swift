@@ -47,9 +47,7 @@ struct SettingsView: View {
                         Text("Show events without a link")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white)
-                        Text(settings.showAllEvents
-                             ? "All events are shown, including ones you can't join."
-                             : "Only events with a join link are shown.")
+                        Text("Only events with a join link are shown.")
                             .font(.system(size: 11))
                             .foregroundColor(Color(white: 0.4))
                     }
