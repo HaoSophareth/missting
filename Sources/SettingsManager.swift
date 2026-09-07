@@ -5,7 +5,18 @@ final class SettingsManager: ObservableObject {
 
     /// Minutes before a meeting to send a notification.
     @Published var notificationOffset: Int {
-        didSet { UserDefaults.standard.set(notificationOffset, forKey: "notificationOffset") }
+        didSet {
+            UserDefaults.standard.set(notificationOffset, forKey: "notificationOffset")
+            // checkAndNotify re-evaluates fully fresh each call (no cached/stale
+            // schedule the way auto-join has), so nothing needs correcting here —
+            // but it otherwise only runs on the ~60s calendar refresh timer, which
+            // would leave a change sitting unapplied for up to a minute. Re-run it
+            // immediately so the new threshold takes effect right away.
+            NotificationManager.shared.checkAndNotify(
+                meetings: CalendarManager.shared.meetings,
+                offsets: enabledOffsets
+            )
+        }
     }
 
     /// How many minutes before start to auto-join. 0 = at start time.
