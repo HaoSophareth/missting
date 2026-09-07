@@ -281,7 +281,10 @@ renderDay();
     if (secsLeft <= 0) {
       clearInterval(interval);
       dismissNotif();
-      if (soonCard) applyMeetingState(soonCard, "joined");
+      if (soonCard) {
+        applyMeetingState(soonCard, "joined");
+        if (soonCard.dataset.joinUrl) window.open(soonCard.dataset.joinUrl, "_blank");
+      }
     }
   }, 1000);
 })();
