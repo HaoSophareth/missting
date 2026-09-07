@@ -58,8 +58,10 @@ final class CalendarManager: ObservableObject {
     private let auth = GoogleAuthManager.shared
 
     private static let iso = ISO8601DateFormatter()
+    // Known video-conferencing platforms — matched regardless of which field
+    // (location or description) the link happens to sit in.
     private static let linkPattern = try! NSRegularExpression(
-        pattern: #"https://(?:meet\.google\.com/[^\s\"<]+|[\w.\-]*zoom\.us/j/[^\s\"<]+|teams\.microsoft\.com/[^\s\"<]+|calendly\.com/events/[\w-]+/(?:google_meet|zoom|microsoft_teams)[^\s\"<]*)"#
+        pattern: #"https://(?:meet\.google\.com/[^\s\"<]+|[\w.\-]*zoom\.us/(?:j|my)/[^\s\"<]+|teams\.microsoft\.com/[^\s\"<]+|teams\.live\.com/[^\s\"<]+|[\w.\-]*webex\.com/[^\s\"<]+|[\w.\-]*gotomeet(?:ing)?\.(?:com|me)/[^\s\"<]+|bluejeans\.com/[^\s\"<]+|whereby\.com/[^\s\"<]+|meet\.jit\.si/[^\s\"<]+|join\.me/[^\s\"<]+|chime\.aws/[^\s\"<]+|8x8\.vc/[^\s\"<]+|ringcentral\.com/[^\s\"<]*meet[^\s\"<]*|calendly\.com/events/[\w-]+/(?:google_meet|zoom|microsoft_teams)[^\s\"<]*)"#
     )
     private static let anyURLPattern = try! NSRegularExpression(
         pattern: #"https://[^\s\"<]+"#
@@ -325,23 +327,32 @@ final class CalendarManager: ObservableObject {
                 }
             }
 
-            // 3. Any https URL in the location field (covers Preply, custom platforms, etc.)
-            if let location = e.location, !location.isEmpty {
-                let range = NSRange(location.startIndex..., in: location)
-                if let match = Self.anyURLPattern.firstMatch(in: location, range: range),
-                   let sr = Range(match.range, in: location) {
-                    return URL(string: Self.decodeHTMLEntities(String(location[sr])))
-                }
+            // 3. Known video-call platform links, wherever they sit — location or
+            // description. Google Calendar descriptions can contain raw HTML (e.g.
+            // Zoom's <a href="...">), so the extracted substring may still have
+            // entity-encoded characters like &amp;.
+            let range = NSRange(fullText.startIndex..., in: fullText)
+            if let match = Self.linkPattern.firstMatch(in: fullText, range: range),
+               let sr = Range(match.range, in: fullText) {
+                return URL(string: Self.decodeHTMLEntities(String(fullText[sr])))
             }
 
-            // 4. Known video-call patterns anywhere in description
-            // Google Calendar descriptions can contain raw HTML (e.g. Zoom's <a href="...">),
-            // so the extracted substring may still have entity-encoded characters like &amp;.
-            let desc = e.description ?? ""
-            let range = NSRange(desc.startIndex..., in: desc)
-            guard let match = Self.linkPattern.firstMatch(in: desc, range: range),
-                  let sr = Range(match.range, in: desc) else { return nil }
-            return URL(string: Self.decodeHTMLEntities(String(desc[sr])))
+            // 4. Fallback for custom/unbranded booking platforms (e.g. Preply) that put
+            // their own call link in the location field under no recognized domain.
+            // Scoped to location only (not description, which is too noisy with
+            // unrelated links) and filtered against known non-meeting link types
+            // (maps, docs, drive, calendar, etc.) so those aren't mistaken for it.
+            if let location = e.location, !location.isEmpty {
+                let locRange = NSRange(location.startIndex..., in: location)
+                let matches = Self.anyURLPattern.matches(in: location, range: locRange)
+                for match in matches {
+                    guard let sr = Range(match.range, in: location),
+                          let url = URL(string: Self.decodeHTMLEntities(String(location[sr]))),
+                          !Self.isKnownNonMeetingLink(url) else { continue }
+                    return url
+                }
+            }
+            return nil
         }()
 
         guard let url = rawURL else { return nil }
@@ -355,6 +366,33 @@ final class CalendarManager: ObservableObject {
             return comps?.url ?? url
         }
         return url
+    }
+
+    /// Link types that are never a meeting to join — a physical address, a shared
+    /// file, a calendar entry, a social/media page, etc. — so the location-field
+    /// fallback (rule 4) doesn't mistake one for the join link.
+    private static func isKnownNonMeetingLink(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        let path = url.path.lowercased()
+
+        if host == "maps.app.goo.gl" || host.hasSuffix(".maps.app.goo.gl") { return true }
+
+        if host.hasSuffix("google.com") {
+            let googleNonMeetingPrefixes = [
+                "/maps", "/document", "/spreadsheets", "/presentation", "/forms",
+                "/drive", "/file", "/calendar", "/photos", "/contacts",
+            ]
+            return googleNonMeetingPrefixes.contains { path.hasPrefix($0) }
+        }
+
+        let nonMeetingHosts: Set<String> = [
+            "docs.google.com", "drive.google.com", "photos.google.com", "photos.app.goo.gl",
+            "calendar.google.com", "youtube.com", "youtu.be", "github.com", "notion.so",
+            "www.notion.so", "dropbox.com", "www.dropbox.com", "twitter.com", "x.com",
+            "facebook.com", "www.facebook.com", "instagram.com", "linkedin.com",
+            "www.linkedin.com", "amazon.com", "www.amazon.com",
+        ]
+        return nonMeetingHosts.contains(host)
     }
 
     private static func decodeHTMLEntities(_ s: String) -> String {
