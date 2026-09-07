@@ -107,25 +107,24 @@ struct SettingsView: View {
                 Spacer()
                 HStack(spacing: 5) {
                     Circle()
-                        .fill(calendar.minervaCalendarConnected
-                              ? Color(red: 0.2, green: 0.78, blue: 0.42)
-                              : Color(red: 0.9, green: 0.3, blue: 0.3))
+                        .fill(minervaStatusColor)
                         .frame(width: 7, height: 7)
-                    Text(calendar.minervaCalendarConnected ? "Connected" : "Not connected")
+                    Text(minervaStatusLabel)
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(calendar.minervaCalendarConnected
-                                         ? Color(red: 0.2, green: 0.78, blue: 0.42)
-                                         : Color(red: 0.9, green: 0.3, blue: 0.3))
+                        .foregroundColor(minervaStatusColor)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 14)
             .padding(.bottom, 8)
 
-            // Once connected there's nothing left to do, so the setup
-            // instructions would just be clutter — only show them while
-            // still needed.
-            if !calendar.minervaCalendarConnected {
+            // Fully connected means a real class link was actually decoded, so
+            // there's nothing left to do or explain. Every other state — including
+            // the "green" no-classes-soon one — gets a one-line diagnosis instead of
+            // a flat status, since "connected" alone was exactly what hid these
+            // bugs before: the calendar toggled off, unreadable, or just not the
+            // one you think it is.
+            if case .notConnected = calendar.minervaStatus {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Missting auto-detects your class join links from your Minerva Academic calendar. Follow these steps to connect it:")
                         .font(.system(size: 11))
@@ -147,6 +146,13 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
+            } else if let detail = minervaStatusDetail {
+                Text(detail)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(white: 0.4))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
             } else {
                 // Match the Calendars section's own end-of-content spacer
                 // above, so both sections give the same breathing room
@@ -187,6 +193,53 @@ struct SettingsView: View {
         .simultaneousGesture(TapGesture().onEnded {
             NSApp.keyWindow?.makeFirstResponder(nil)
         })
+    }
+
+    // MARK: - Minerva status
+
+    // Three tiers, not five: green only for the one case that's actually
+    // verified working, amber for "found something, but it needs a fix", red
+    // for nothing found at all. A label claiming "Connected" next to an amber
+    // dot would read as self-contradictory, so the label always agrees with
+    // the tier's color instead of being its own fourth signal.
+    private var minervaStatusColor: Color {
+        switch calendar.minervaStatus {
+        case .connected:
+            return Color(red: 0.2, green: 0.78, blue: 0.42)
+        case .disabledInSettings, .fetchFailed, .noClassesInWindow:
+            return Color(red: 0.95, green: 0.65, blue: 0.15)
+        case .notConnected:
+            return Color(red: 0.9, green: 0.3, blue: 0.3)
+        }
+    }
+
+    private var minervaStatusLabel: String {
+        switch calendar.minervaStatus {
+        case .connected: return "Connected"
+        case .noClassesInWindow: return "No classes found"
+        case .disabledInSettings: return "Calendar turned off"
+        case .fetchFailed: return "Can't read calendar"
+        case .notConnected: return "Not connected"
+        }
+    }
+
+    /// One-line diagnosis shown under the status row — nil only for `.connected`,
+    /// which is the single case with nothing left to explain. Kept to one
+    /// concrete sentence each: name the calendar and the one thing to do,
+    /// nothing hedged or speculative.
+    private var minervaStatusDetail: String? {
+        switch calendar.minervaStatus {
+        case .connected:
+            return nil
+        case .noClassesInWindow(let name):
+            return "\"\(name)\" is on and readable, but has no class link in the next 8 days."
+        case .disabledInSettings(let name):
+            return "\"\(name)\" is turned off above — turn it on to detect your classes."
+        case .fetchFailed(let name):
+            return "Missting can't read \"\(name)\" right now — try removing and re-adding it in Google Calendar."
+        case .notConnected:
+            return nil // the 3-step setup instructions cover this case instead
+        }
     }
 
     // MARK: - Helpers

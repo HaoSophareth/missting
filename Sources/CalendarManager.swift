@@ -45,14 +45,46 @@ struct CalendarInfo: Identifiable, Equatable {
     let colorHex: String?
 }
 
+/// Diagnoses exactly why the Minerva class calendar is or isn't working, rather
+/// than a single connected/disconnected bool. The old bool went green as soon as
+/// ANY calendar's name merely contained "minerva" — true even when that calendar
+/// was toggled off in Missting's own Calendars list, unreadable (a permission
+/// error silently produced zero events), or just wasn't the personal
+/// forum.minerva.edu feed at all. Each non-fully-working case names the calendar
+/// involved so Settings can point at the actual fix instead of a flat "connected".
+enum MinervaStatus: Equatable {
+    /// No calendar with "minerva" in its name exists at all — show setup steps.
+    case notConnected
+    /// A minerva-named calendar exists, but every copy of it is turned off in
+    /// the Calendars list above, so its events are never fetched.
+    case disabledInSettings(calendarName: String)
+    /// Enabled, but the last fetch for it returned a non-200 (permission/sharing
+    /// issue) — Google silently gets skipped rather than surfaced, so this is
+    /// the only way to know it happened.
+    case fetchFailed(calendarName: String)
+    /// Enabled and readable, but no forum.minerva.edu class link turned up in
+    /// the fetch window. Often just means no class is scheduled soon; can also
+    /// mean Google hasn't re-synced this externally-subscribed calendar yet.
+    case noClassesInWindow(calendarName: String)
+    /// Enabled, readable, and a real class.minerva.edu join link was decoded
+    /// from it — the only case that guarantees auto-join has something to do.
+    case connected
+}
+
+/// One calendar's event fetch outcome — `failed` distinguishes "Google rejected
+/// this request" from "this calendar genuinely has no events right now", which a
+/// bare `[Meeting]` can't.
+private struct CalendarFetchResult {
+    let meetings: [Meeting]
+    let failed: Bool
+}
+
 final class CalendarManager: ObservableObject {
     static let shared = CalendarManager()
 
     @Published var meetings: [Meeting] = []
     @Published var availableCalendars: [CalendarInfo] = []
-    /// True after a fetch finds at least one event with a forum.minerva.edu link,
-    /// meaning the Academic calendar is connected and working.
-    @Published var minervaCalendarConnected: Bool = false
+    @Published var minervaStatus: MinervaStatus = .notConnected
 
     private var refreshTimer: Timer?
     private let auth = GoogleAuthManager.shared
@@ -117,7 +149,7 @@ final class CalendarManager: ObservableObject {
                 let token = try await auth.getValidToken()
                 let result = try await fetchFromAllCalendars(token: token)
                 self.meetings = result.meetings
-                self.minervaCalendarConnected = result.hasMinerva
+                self.minervaStatus = result.minervaStatus
                 NotificationManager.shared.checkAndNotify(
                     meetings: self.meetings,
                     offsets: SettingsManager.shared.enabledOffsets
@@ -138,7 +170,7 @@ final class CalendarManager: ObservableObject {
 
     // MARK: - Fetch all calendars then their events
 
-    private func fetchFromAllCalendars(token: String) async throws -> (meetings: [Meeting], hasMinerva: Bool) {
+    private func fetchFromAllCalendars(token: String) async throws -> (meetings: [Meeting], minervaStatus: MinervaStatus) {
         let calendars = try await fetchCalendarList(token: token)
         let now = Date()
         let disabled = SettingsManager.shared.disabledCalendarIds
@@ -146,21 +178,27 @@ final class CalendarManager: ObservableObject {
         // Publish available calendars on main actor
         await MainActor.run { self.availableCalendars = calendars }
 
-        let enabledIds = calendars.map(\.id).filter { !disabled.contains($0) }
+        let enabledIds = Set(calendars.map(\.id).filter { !disabled.contains($0) })
 
         // Fetch events from all calendars concurrently
         var allMeetings: [Meeting] = []
+        // Calendars whose event fetch came back non-200 — fetchEvents swallows the
+        // error and returns no events rather than failing the whole refresh, so this
+        // is the only record that it happened instead of the calendar just being
+        // legitimately empty.
+        var failedCalendarIds: Set<String> = []
 
         // Collect all copies (same event can appear in multiple calendars)
         var allCopies: [String: [Meeting]] = [:]
-        try await withThrowingTaskGroup(of: [Meeting].self) { group in
+        try await withThrowingTaskGroup(of: (String, CalendarFetchResult).self) { group in
             for calId in enabledIds {
                 group.addTask {
-                    try await self.fetchEvents(token: token, calendarId: calId, now: now)
+                    (calId, try await self.fetchEvents(token: token, calendarId: calId, now: now))
                 }
             }
-            for try await meetings in group {
-                for meeting in meetings {
+            for try await (calId, result) in group {
+                if result.failed { failedCalendarIds.insert(calId) }
+                for meeting in result.meetings {
                     allCopies[meeting.dedupKey, default: []].append(meeting)
                 }
             }
@@ -184,17 +222,50 @@ final class CalendarManager: ObservableObject {
         }
         allMeetings = byContent.values.map(Self.pickRepresentative)
 
-        // Check for Minerva: calendar present in list OR events found in window.
-        // Using calendar name so it shows Connected even when there are no classes today/tomorrow.
-        let hasMinervaCalendar = calendars.contains { $0.name.lowercased().contains("minerva") }
-        let hasMinervaEvents   = allMeetings.contains { $0.joinURL?.host?.contains("class.minerva.edu") == true }
-        let hasMinerva = hasMinervaCalendar || hasMinervaEvents
+        // Diagnose Minerva end to end instead of a flat present/absent check.
+        // A real class link, found anywhere among the enabled calendars, is the
+        // one unambiguous "this works" signal — check that first and skip the
+        // name-guessing entirely when it's already true.
+        let hasClassLink = allMeetings.contains { $0.joinURL?.host?.contains("class.minerva.edu") == true }
+        let minervaStatus: MinervaStatus
+        if hasClassLink {
+            minervaStatus = .connected
+        } else {
+            // Only reached when nothing has actually worked yet, so naming a
+            // specific calendar needs real evidence, not a guess. "minerva" alone
+            // matches all sorts of things that are never the personal Forum feed —
+            // community calendars ("Humans of Minerva"), campus/regional ones
+            // ("Buenos Aires Calendar | Minerva University"), even the signed-in
+            // account's own primary calendar (its id is just their @minerva.edu
+            // email). "Minerva" is the university's own name, so it shows up
+            // everywhere — matching on it alone means constantly finding some
+            // unrelated calendar to blame. Only the two actual naming patterns
+            // Forum's own "Copy Calendar Link" export has been seen producing —
+            // "[Minerva] <name>" or something containing "academic" — count as a
+            // real candidate; anything else falls straight through to notConnected
+            // below rather than pointing at a calendar that likely has nothing to
+            // do with classes.
+            let selfEmail = auth.userEmail?.lowercased()
+            let minervaCalendars = calendars.filter {
+                let name = $0.name.lowercased()
+                return (name.hasPrefix("[minerva]") || name.contains("academic")) && $0.id.lowercased() != selfEmail
+            }
+            if let disabled = minervaCalendars.first(where: { !enabledIds.contains($0.id) }) {
+                minervaStatus = .disabledInSettings(calendarName: disabled.name)
+            } else if let failed = minervaCalendars.first(where: { failedCalendarIds.contains($0.id) }) {
+                minervaStatus = .fetchFailed(calendarName: failed.name)
+            } else if let candidate = minervaCalendars.first {
+                minervaStatus = .noClassesInWindow(calendarName: candidate.name)
+            } else {
+                minervaStatus = .notConnected
+            }
+        }
 
         let filtered = allMeetings
             .filter { $0.endDate > now }
             .sorted { $0.startDate < $1.startDate }
 
-        return (filtered, hasMinerva)
+        return (filtered, minervaStatus)
     }
 
     /// Picks which copy of a duplicated event represents it: prefer the copy where
@@ -233,13 +304,19 @@ final class CalendarManager: ObservableObject {
             pageToken = body.nextPageToken
         } while pageToken != nil
 
-        // Only expose calendars the user has checked in Google Calendar
+        // Every calendar the account can read, regardless of Google Calendar's own
+        // "selected" (shown in my view) flag. That flag is purely a display
+        // preference for Google's own UI — a calendar added via "From URL" can land
+        // with selected=false and never show here otherwise, which is exactly how a
+        // freshly-subscribed Minerva class calendar can go undetected with zero
+        // indication why. Missting has its own enable/disable toggle in Settings
+        // (disabledCalendarIds) for the user to actually control what's fetched, so
+        // filtering on Google's flag here only hides calendars without ever asking.
         return allItems
-            .filter { $0.selected == true }
             .map { CalendarInfo(id: $0.id, name: $0.summary ?? $0.id, colorHex: $0.backgroundColor) }
     }
 
-    private func fetchEvents(token: String, calendarId: String, now: Date) async throws -> [Meeting] {
+    private func fetchEvents(token: String, calendarId: String, now: Date) async throws -> CalendarFetchResult {
         let cal = Calendar.current
         let windowStart = cal.startOfDay(for: now)
         let windowEnd = cal.date(byAdding: .day, value: 8, to: windowStart)!
@@ -259,15 +336,20 @@ final class CalendarManager: ObservableObject {
 
         let (data, response) = try await URLSession.shared.data(for: req)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            return [] // skip calendars we can't read rather than failing everything
+            // Skip calendars we can't read rather than failing the whole refresh —
+            // but remember it happened, so a calendar that's silently unreadable
+            // (permission/sharing issue) isn't indistinguishable from one that's
+            // genuinely just empty.
+            return CalendarFetchResult(meetings: [], failed: true)
         }
 
         let body    = try JSONDecoder().decode(EventsResponse.self, from: data)
         let calEmail = calendarId.contains("@") ? calendarId : nil
         // Filter out all-day events (no dateTime) and events that ended before today started
-        return (body.items ?? [])
+        let meetings = (body.items ?? [])
             .filter { $0.start?.dateTime != nil }
             .compactMap { toMeeting($0, calendarEmail: calEmail, calendarId: calendarId) }
+        return CalendarFetchResult(meetings: meetings, failed: false)
     }
 
     // MARK: - Mapping
