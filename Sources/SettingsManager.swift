@@ -10,7 +10,10 @@ final class SettingsManager: ObservableObject {
 
     /// How many minutes before start to auto-join. 0 = at start time.
     @Published var autoJoinOffset: Int {
-        didSet { UserDefaults.standard.set(autoJoinOffset, forKey: "autoJoinOffset") }
+        didSet {
+            UserDefaults.standard.set(autoJoinOffset, forKey: "autoJoinOffset")
+            AutoJoinManager.shared.rescheduleAllForOffsetChange()
+        }
     }
 
     @Published var disabledCalendarIds: Set<String> {

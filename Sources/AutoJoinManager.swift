@@ -99,6 +99,22 @@ final class AutoJoinManager: ObservableObject {
         scheduledIds.contains(id)
     }
 
+    /// Called when the user changes "Auto-join before start" in Settings. Every
+    /// already-scheduled meeting's join time was computed once, at whatever offset
+    /// was in effect when it was scheduled — nothing else ever revisits it, so
+    /// without this a change to the setting only affects meetings scheduled after
+    /// the change, not ones already sitting in `scheduled`. Reschedules each one
+    /// through the normal path, which recomputes joinDate from the current offset,
+    /// resets its reminder flag, and dismisses/refires the floating alert as needed.
+    /// Snapshot first — scheduleInternal mutates `scheduled`, so iterating it
+    /// directly while rescheduling would mutate the collection mid-iteration.
+    func rescheduleAllForOffsetChange() {
+        let meetings = scheduled.values.map(\.meeting)
+        for meeting in meetings {
+            scheduleInternal(meeting)
+        }
+    }
+
     func isManuallyCancelled(_ id: String) -> Bool {
         manuallyCancelled.contains(id)
     }
