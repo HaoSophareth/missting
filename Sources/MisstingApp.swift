@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MenuBarManager.shared.setup()
         CalendarManager.shared.startRefreshingIfSignedIn()
         _ = CallDetector.shared
+        UsageReporter.pingIfNeeded()
 
         // Show floating alert for in-progress meetings when laptop wakes from sleep
         NSWorkspace.shared.notificationCenter.addObserver(
