@@ -20,6 +20,8 @@
     <string>Ute+yPgs9uaorkzo+gU3t5j75XL3gi78xZZ13d7H13g=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
+    <key>SUAutomaticallyUpdate</key>
+    <true/>
     <key>LSUIElement</key>
     <true/>
     <key>NSUserNotificationAlertStyle</key>
