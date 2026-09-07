@@ -29,11 +29,10 @@ final class FloatingAlertManager {
         // Don't show a duplicate for the same meeting
         if entries.contains(where: { $0.meetingId == meeting.id }) { return }
 
-        // Both this alert and the popover anchor near the screen's top-right
-        // corner, so they'd render stacked on top of each other. The meeting
-        // is already visible in the open popover, so skip the redundant alert.
-        if MenuBarManager.shared.isPopoverOpen { return }
-
+        // Previously skipped while the popover was open (meeting's "already visible"
+        // there), but NotificationManager marks the reminder as delivered regardless
+        // of whether this suppression fires — so a threshold crossed while the user
+        // happened to have the popover open was silently lost forever. Always show.
         let activeScreen = currentScreen()
 
         let hostingView = NSHostingView(
@@ -89,6 +88,7 @@ final class FloatingAlertManager {
         p.setFrameOrigin(NSPoint(x: x, y: y))
 
         p.orderFrontRegardless()
+        NSSound(named: "Ping")?.play()
 
         let timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: false) { [weak self] _ in
             self?.dismiss(meetingId: meeting.id)
