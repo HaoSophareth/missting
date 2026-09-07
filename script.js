@@ -278,7 +278,11 @@ renderDay();
       notifFired = true;
       showNotif();
     }
-    if (secsLeft <= 0) clearInterval(interval);
+    if (secsLeft <= 0) {
+      clearInterval(interval);
+      dismissNotif();
+      if (soonCard) applyMeetingState(soonCard, "joined");
+    }
   }, 1000);
 })();
 
