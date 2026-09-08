@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 import ServiceManagement
-import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var starPanel: NSPanel?
@@ -9,15 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private static let starRepoURL = URL(string: "https://github.com/HaoSophareth/missting")!
 
-    /// Sparkle auto-updater — checks the appcast feed on a schedule and
-    /// installs signed updates from GitHub Releases.
-    let updaterController = SPUStandardUpdaterController(
-        startingUpdater: true,
-        updaterDelegate: nil,
-        userDriverDelegate: nil
-    )
-
     func applicationDidFinishLaunching(_ notification: Notification) {
+        _ = UpdateManager.shared // starts the Sparkle updater
         NSApp.setActivationPolicy(.accessory)
         if #available(macOS 13.0, *) { try? SMAppService.mainApp.register() }
         MenuBarManager.shared.setup()

@@ -4,6 +4,7 @@ import AppKit
 struct SettingsView: View {
     @EnvironmentObject private var settings: SettingsManager
     @EnvironmentObject private var calendar: CalendarManager
+    @EnvironmentObject private var updater: UpdateManager
 
     private let visibleCalendarRows: CGFloat = 5
 
@@ -162,6 +163,41 @@ struct SettingsView: View {
 
             Divider().background(Color(white: 0.12))
 
+            // MARK: - Check for Updates
+            Button {
+                updater.checkForUpdates()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.7))
+                    Text(updater.isChecking ? "Checking for Updates…" : "Check for Updates…")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white)
+                    // Persistent ping for a known-available update — Sparkle's own
+                    // dialog only appears once per check and is easy to miss on a
+                    // menu-bar-only app, so this stays lit until the update installs.
+                    if updater.updateAvailable {
+                        Circle()
+                            .fill(Color(red: 0.31, green: 0.56, blue: 0.97))
+                            .frame(width: 7, height: 7)
+                    }
+                    Spacer()
+                    if updater.isChecking {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                            .frame(width: 11, height: 11)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(updater.isChecking)
+
+            Divider().background(Color(white: 0.12))
+
             // MARK: - Star on GitHub
             Button {
                 NSWorkspace.shared.open(URL(string: "https://github.com/HaoSophareth/missting")!)
@@ -184,7 +220,8 @@ struct SettingsView: View {
                         .foregroundColor(Color(white: 0.45))
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.top, 12)
+                .padding(.bottom, 14)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

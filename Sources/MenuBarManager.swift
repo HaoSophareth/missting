@@ -44,6 +44,7 @@ final class MenuBarManager: NSObject {
                 .environmentObject(CalendarManager.shared)
                 .environmentObject(AutoJoinManager.shared)
                 .environmentObject(SettingsManager.shared)
+                .environmentObject(UpdateManager.shared)
         )
         let hc = NSHostingController(rootView: rootView)
 
@@ -121,12 +122,6 @@ final class MenuBarManager: NSObject {
 
     private func showQuitMenu() {
         let menu = NSMenu()
-        let updateItem = NSMenuItem(title: "Check for Updates…",
-                                    action: #selector(checkForUpdates),
-                                    keyEquivalent: "")
-        updateItem.target = self
-        menu.addItem(updateItem)
-        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Missting",
                                 action: #selector(NSApp.terminate(_:)),
                                 keyEquivalent: "q"))
@@ -136,10 +131,6 @@ final class MenuBarManager: NSObject {
         DispatchQueue.main.async { [weak self] in
             self?.statusItem?.menu = nil
         }
-    }
-
-    @objc private func checkForUpdates() {
-        (NSApp.delegate as? AppDelegate)?.updaterController.checkForUpdates(nil)
     }
 
     // MARK: - Auto-close monitors

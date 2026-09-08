@@ -21,6 +21,18 @@ mkdir -p "$BUNDLE/Contents/Resources"
 
 cp "$BINDIR/$APPNAME" "$BUNDLE/Contents/MacOS/$APPNAME"
 cp "Info.plist" "$BUNDLE/Contents/Info.plist"
+
+if [ "${UNIVERSAL:-0}" != "1" ]; then
+  # Local dev builds never bump their own version number the way a tagged
+  # release does (only the CI release workflow stamps that, from the git
+  # tag), so a fresh local build always reports itself as older than
+  # whatever's actually published. With SUAutomaticallyUpdate on, Sparkle
+  # will silently replace a local test build with the real public release
+  # mid-session otherwise. Disable checks on this local copy only — the
+  # committed Info.plist, and every CI release (which stamps its own
+  # version before this script even runs), are untouched.
+  /usr/libexec/PlistBuddy -c "Set :SUEnableAutomaticChecks false" "$BUNDLE/Contents/Info.plist"
+fi
 cp "Resources/alarm-clock.png" "$BUNDLE/Contents/Resources/alarm-clock.png"
 cp "Resources/sunflower.png" "$BUNDLE/Contents/Resources/sunflower.png"
 cp "Resources/sunflower-gray.png" "$BUNDLE/Contents/Resources/sunflower-gray.png"
