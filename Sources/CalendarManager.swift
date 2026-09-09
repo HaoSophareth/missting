@@ -154,6 +154,7 @@ final class CalendarManager: ObservableObject {
                     meetings: self.meetings,
                     offsets: SettingsManager.shared.enabledOffsets
                 )
+                AutoJoinManager.shared.syncScheduled(with: result.meetings)
                 autoScheduleMinervaClasses(result.meetings)
             } catch {
                 print("Calendar fetch error:", error)

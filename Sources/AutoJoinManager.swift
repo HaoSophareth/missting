@@ -33,6 +33,10 @@ final class AutoJoinManager: ObservableObject {
     private var pollTimer: Timer?
     /// Consecutive fetches each cancelled/persisted meeting id has been missing for.
     private var missingFetchCounts: [String: Int] = [:]
+    /// Consecutive fetches each actively-scheduled meeting id has been missing for —
+    /// separate from missingFetchCounts above, which only tracks the cancelled/
+    /// persisted bookkeeping sets, not the live scheduled join itself.
+    private var missingScheduledFetchCounts: [String: Int] = [:]
 
     private init() {
         // Check immediately when Mac wakes from sleep
@@ -117,6 +121,40 @@ final class AutoJoinManager: ObservableObject {
 
     func isManuallyCancelled(_ id: String) -> Bool {
         manuallyCancelled.contains(id)
+    }
+
+    /// Called after every fetch with the fresh meeting list — reconciles every
+    /// already-scheduled meeting against it. A scheduled meeting's cached data
+    /// (its own start time, most notably) is otherwise never revisited once set:
+    /// editing/rescheduling an event in Google Calendar afterward left the old
+    /// join time firing regardless, since CalendarManager's own list moves on
+    /// but nothing told AutoJoinManager to look again. Same idea for a meeting
+    /// that's deleted or fully cancelled outright — with nothing here, it would
+    /// still auto-join at the original time forever.
+    /// Debounced the same way cleanupCancelled is (a meeting must be missing
+    /// from several consecutive fetches before being cancelled), so one
+    /// transient/partial fetch can't cancel a real, still-upcoming join.
+    func syncScheduled(with meetings: [Meeting]) {
+        let freshById = Dictionary(uniqueKeysWithValues: meetings.map { ($0.id, $0) })
+
+        var toReschedule: [Meeting] = []
+        var toCancel: [String] = []
+        for (id, join) in scheduled {
+            if let fresh = freshById[id] {
+                missingScheduledFetchCounts[id] = 0
+                if fresh != join.meeting { toReschedule.append(fresh) }
+            } else {
+                let count = (missingScheduledFetchCounts[id] ?? 0) + 1
+                missingScheduledFetchCounts[id] = count
+                if count >= 5 { toCancel.append(id) }
+            }
+        }
+        // Snapshot first, then mutate — scheduleInternal/cancel both mutate
+        // `scheduled`, so acting mid-iteration over it isn't safe.
+        for meeting in toReschedule { scheduleInternal(meeting) }
+        for id in toCancel { cancel(id) }
+
+        missingScheduledFetchCounts = missingScheduledFetchCounts.filter { scheduled[$0.key] != nil }
     }
 
     /// Called after each fetch — prunes stale entries for meetings that no longer exist.
