@@ -36,14 +36,25 @@ extension UpdateManager: SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         DispatchQueue.main.async {
             self.updateAvailable = true
-            self.isChecking = false
         }
     }
 
-    func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
+    // The one delegate callback Sparkle guarantees fires when a check concludes,
+    // for every outcome — found, not found, a network/server error, or the user
+    // cancelling. didFindValidUpdate/updaterDidNotFindUpdate alone don't cover
+    // every real outcome (a hard error hits neither), which is exactly how
+    // isChecking got stuck true forever with a spinner that never resolved.
+    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: Error?) {
         DispatchQueue.main.async {
-            self.updateAvailable = false
             self.isChecking = false
+            if let nsError = error as NSError?,
+               nsError.domain == SUSparkleErrorDomain,
+               nsError.code == SUError.noUpdateError.rawValue {
+                self.updateAvailable = false
+            }
+            // Any other error: leave updateAvailable as it was — a network/server
+            // failure doesn't actually tell us whether one exists, so don't
+            // claim "you're up to date" when we don't know that.
         }
     }
 }
