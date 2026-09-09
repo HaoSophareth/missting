@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 final class MenuBarManager: NSObject {
     static let shared = MenuBarManager()
@@ -14,11 +15,14 @@ final class MenuBarManager: NSObject {
     private var resizeTimer: Timer?
 
     private var colorIcon: NSImage?
+    private var badgedIcon: NSImage?
+    private var updateAvailableSubscription: AnyCancellable?
 
     private override init() {}
 
     func setup() {
         colorIcon = loadMenuBarIcon()
+        if let colorIcon { badgedIcon = addUpdateBadge(to: colorIcon) }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         // Persists wherever the user Cmd-drags the icon to across launches —
@@ -34,6 +38,17 @@ final class MenuBarManager: NSObject {
             button.target = self
         }
         statusItem = item
+
+        // Same ping as the Settings row, but visible without opening the popover
+        // at all — a small dot on the menu bar icon itself, since that's the one
+        // thing guaranteed to be glanced at, unlike a dialog that shows once and
+        // is easy to miss on a background app.
+        updateAvailableSubscription = UpdateManager.shared.$updateAvailable
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] available in
+                guard let self, let button = self.statusItem?.button else { return }
+                button.image = available ? (self.badgedIcon ?? self.colorIcon) : self.colorIcon
+            }
 
         let pop = NSPopover()
         pop.behavior = .applicationDefined
@@ -169,6 +184,34 @@ final class MenuBarManager: NSObject {
         result.lockFocus()
         NSGraphicsContext.current?.imageInterpolation = .high
         source.draw(in: NSRect(origin: .zero, size: size))
+        result.unlockFocus()
+        result.isTemplate = false
+        return result
+    }
+
+    /// Draws a small solid dot over the bottom-right corner of the icon — same
+    /// blue as the Settings ping, with a thin white ring so it stays legible
+    /// against both light and dark menu bars.
+    private func addUpdateBadge(to base: NSImage) -> NSImage {
+        let result = NSImage(size: base.size)
+        result.lockFocus()
+        base.draw(in: NSRect(origin: .zero, size: base.size))
+
+        let dotDiameter: CGFloat = 7
+        let ringInset: CGFloat = 1
+        let dotRect = NSRect(
+            x: base.size.width - dotDiameter - 1,
+            y: 0,
+            width: dotDiameter,
+            height: dotDiameter
+        )
+
+        NSColor.white.setFill()
+        NSBezierPath(ovalIn: dotRect.insetBy(dx: -ringInset, dy: -ringInset)).fill()
+
+        NSColor(red: 0.31, green: 0.56, blue: 0.97, alpha: 1).setFill()
+        NSBezierPath(ovalIn: dotRect).fill()
+
         result.unlockFocus()
         result.isTemplate = false
         return result
