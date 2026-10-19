@@ -45,12 +45,8 @@ final class FloatingAlertManager {
                     self?.dismiss(meetingId: meeting.id)
                 },
                 onDismiss: { [weak self] in
-                    // Explicit X = "stop alerting me about this meeting" — same as Cancel:
-                    // if an auto-join was scheduled, closing the alert stops it too, so X
-                    // never leaves a meeting silently auto-joining after the user closed it.
-                    // The 30s auto-timeout below calls dismiss() directly and does NOT count.
-                    if AutoJoinManager.shared.isScheduled(meeting.id) { AutoJoinManager.shared.cancelManually(meeting.id) }
-                    JoinTracker.shared.markDismissed(meeting)
+                    // X only closes this alert. It doesn't cancel a scheduled auto-join
+                    // (that's Cancel's job) or mute the meeting's later reminders.
                     self?.dismiss(meetingId: meeting.id)
                 },
                 autoJoinReminderMode: autoJoinReminderMode
