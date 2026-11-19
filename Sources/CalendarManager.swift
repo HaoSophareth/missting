@@ -512,6 +512,7 @@ final class CalendarManager: ObservableObject {
                   !meeting.isDeclined,
                   !JoinTracker.shared.hasJoined(meeting),
                   !autoJoin.isScheduled(meeting.id),
+                  !autoJoin.isAwaitingReturn(meeting.id),
                   !autoJoin.isManuallyCancelled(meeting.id) else { continue }
             autoJoin.scheduleInternal(meeting)
         }

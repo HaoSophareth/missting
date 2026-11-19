@@ -6,10 +6,18 @@ struct FloatingAlertView: View {
     let onJoin: () -> Void
     let onDismiss: () -> Void
     var autoJoinReminderMode: Bool = false
+    /// Non-nil = "coming back" countdown mode: join when it reaches 0.
+    var countdownSeconds: Int? = nil
+    var onCountdownFinished: () -> Void = {}
+    var onCountdownCancel: () -> Void = {}
 
     @EnvironmentObject private var autoJoin: AutoJoinManager
     @State private var tick = 0
     @State private var joinedLocally = false
+    @State private var remaining: Int = 0
+    @State private var countdownDone = false
+
+    private var inCountdown: Bool { countdownSeconds != nil && !countdownDone }
 
     private var isScheduled: Bool { autoJoin.isScheduled(meeting.id) }
     private var mins: Int { meeting.minsUntilStart }
@@ -25,7 +33,11 @@ struct FloatingAlertView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Status row
             HStack(spacing: 0) {
-                if isScheduled {
+                if inCountdown {
+                    Text("Joining class in \(remaining)s")
+                        .font(.system(size: 12, weight: .medium).monospacedDigit())
+                        .foregroundColor(Color(red: 0.96, green: 0.65, blue: 0.14))
+                } else if isScheduled {
                     Text(autoJoinReminderMode ? "Auto-joining in about 1 minute" : "Auto-joining in ~\(max(mins, 0)) min")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(Color(red: 0.96, green: 0.65, blue: 0.14))
@@ -62,7 +74,7 @@ struct FloatingAlertView: View {
                     }
                 }
 
-                Button { onDismiss() } label: {
+                Button { inCountdown ? cancelCountdown() : onDismiss() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(Color(white: 0.4))
@@ -89,7 +101,10 @@ struct FloatingAlertView: View {
                     .foregroundColor(.white)
                     .lineLimit(1)
                 Spacer()
-                if meeting.isInProgress {
+                if inCountdown {
+                    Button("Cancel") { cancelCountdown() }
+                        .buttonStyle(FloatSecondaryStyle())
+                } else if meeting.isInProgress {
                     if meeting.joinURL != nil && !hasJoined {
                         Button("Already in it") {
                             JoinTracker.shared.markJoined(meeting)
@@ -120,9 +135,24 @@ struct FloatingAlertView: View {
         )
         .padding(4)
         .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in tick += 1 }
+        .onAppear { remaining = countdownSeconds ?? 0 }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            guard inCountdown else { return }
+            if remaining > 1 {
+                remaining -= 1
+            } else {
+                countdownDone = true
+                onCountdownFinished()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .meetingAutoJoined)) { note in
             if let id = note.object as? String, id == meeting.id { joinedLocally = true }
         }
+    }
+
+    private func cancelCountdown() {
+        countdownDone = true
+        onCountdownCancel()
     }
 
     private var timeLabel: String {

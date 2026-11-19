@@ -23,7 +23,17 @@ final class FloatingAlertManager {
         DispatchQueue.main.async { self._present(meeting: meeting, autoJoinReminderMode: autoJoinReminderMode) }
     }
 
-    private func _present(meeting: Meeting, autoJoinReminderMode: Bool) {
+    /// "Joining class in 10s · Cancel · Join now" — shown when the user comes
+    /// back to the Mac early in a class whose auto-join was held while away.
+    /// Replaces any alert already showing for the meeting.
+    func presentCountdown(meeting: Meeting, seconds: Int = 10) {
+        dismiss(meetingId: meeting.id)
+        DispatchQueue.main.async {
+            self._present(meeting: meeting, autoJoinReminderMode: false, countdownSeconds: seconds)
+        }
+    }
+
+    private func _present(meeting: Meeting, autoJoinReminderMode: Bool, countdownSeconds: Int? = nil) {
         // Deliberately NOT suppressed while the user is on another call —
         // knowing the next meeting started is exactly when it matters most.
         // Don't show a duplicate for the same meeting
@@ -39,6 +49,8 @@ final class FloatingAlertManager {
             rootView: FloatingAlertView(
                 meeting: meeting,
                 onJoin: { [weak self] in
+                    PresenceMonitor.shared.log("user clicked Join now on \"\(meeting.title)\"")
+                    AutoJoinManager.shared.countdownEnded(meeting.id)
                     if AutoJoinManager.shared.isScheduled(meeting.id) { AutoJoinManager.shared.cancel(meeting.id) }
                     if let url = meeting.joinURL { NSWorkspace.shared.open(url) }
                     JoinTracker.shared.markJoined(meeting)
@@ -54,7 +66,18 @@ final class FloatingAlertManager {
                     }
                     self?.dismiss(meetingId: meeting.id)
                 },
-                autoJoinReminderMode: autoJoinReminderMode
+                autoJoinReminderMode: autoJoinReminderMode,
+                countdownSeconds: countdownSeconds,
+                onCountdownFinished: { [weak self] in
+                    self?.dismiss(meetingId: meeting.id)
+                    AutoJoinManager.shared.countdownFinished(meeting)
+                },
+                onCountdownCancel: { [weak self] in
+                    PresenceMonitor.shared.log("user cancelled countdown for \"\(meeting.title)\"")
+                    AutoJoinManager.shared.cancelManually(meeting.id)
+                    JoinTracker.shared.markDismissed(meeting)
+                    self?.dismiss(meetingId: meeting.id)
+                }
             )
             .environmentObject(AutoJoinManager.shared)
         )

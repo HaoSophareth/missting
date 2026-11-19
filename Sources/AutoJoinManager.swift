@@ -38,6 +38,27 @@ final class AutoJoinManager: ObservableObject {
     /// persisted bookkeeping sets, not the live scheduled join itself.
     private var missingScheduledFetchCounts: [String: Int] = [:]
 
+    /// Joins that came due while nobody was at the Mac (asleep, locked, display
+    /// off, screen saver, other user). Held here instead of opened; handled when
+    /// the user comes back. In-memory only: after a relaunch, the wake/launch
+    /// in-progress scan rebuilds it.
+    private var awayPending: [String: Meeting] = [:]
+
+    /// Meetings currently showing the "Joining class in 10s" countdown.
+    private var countingDown: Set<String> = []
+
+    /// True while a join is held for the user's return or its countdown is
+    /// showing. The calendar refresh must not re-schedule these: a class that
+    /// hasn't started yet would otherwise be re-scheduled on the post-wake
+    /// fetch and open immediately, skipping the countdown (and its Cancel).
+    func isAwaitingReturn(_ id: String) -> Bool {
+        awayPending[id] != nil || countingDown.contains(id)
+    }
+
+    /// When the user comes back within this many seconds of class start, join
+    /// after a short countdown; later than that, only show the alert.
+    static let returnAutoJoinWindow: TimeInterval = 15 * 60
+
     private init() {
         // Check immediately when Mac wakes from sleep
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -45,6 +66,11 @@ final class AutoJoinManager: ObservableObject {
             object: nil, queue: .main
         ) { [weak self] _ in
             self?.checkScheduled()
+        }
+        NotificationCenter.default.addObserver(
+            forName: .userReturned, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.handleUserReturned()
         }
     }
 
@@ -86,13 +112,15 @@ final class AutoJoinManager: ObservableObject {
     func cancel(_ id: String) {
         scheduled.removeValue(forKey: id)
         scheduledIds.remove(id)
-        if scheduled.isEmpty { stopPolling() }
+        stopPollingIfIdle()
     }
 
     /// Stops the timer AND remembers the user explicitly cancelled —
     /// prevents Minerva classes from re-scheduling on the next fetch.
     func cancelManually(_ id: String) {
         cancel(id)
+        awayPending.removeValue(forKey: id)
+        countingDown.remove(id)
         manuallyCancelled.insert(id)
         persistedScheduledIds.remove(id)
         UserDefaults.standard.set(Array(manuallyCancelled), forKey: "manuallyCancelledAutoJoin")
@@ -193,6 +221,10 @@ final class AutoJoinManager: ObservableObject {
         pollTimer?.tolerance = 2
     }
 
+    private func stopPollingIfIdle() {
+        if scheduled.isEmpty && awayPending.isEmpty { stopPolling() }
+    }
+
     private func stopPolling() {
         pollTimer?.invalidate()
         pollTimer = nil
@@ -220,7 +252,13 @@ final class AutoJoinManager: ObservableObject {
 
             fire(meeting: join.meeting, url: join.url)
         }
-        if scheduled.isEmpty { stopPolling() }
+
+        // Fallback for a missed return notification: if joins are waiting and
+        // the user is present now, handle the return on this tick.
+        if !awayPending.isEmpty && PresenceMonitor.shared.isPresent {
+            handleUserReturned()
+        }
+        stopPollingIfIdle()
     }
 
     /// Scans for recently-started meetings the user scheduled for auto-join (Minerva
@@ -241,24 +279,77 @@ final class AutoJoinManager: ObservableObject {
                   !JoinTracker.shared.hasJoined(meeting),
                   !JoinTracker.shared.isDismissed(meeting),
                   !isManuallyCancelled(meeting.id) else { continue }
-            FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
-            NSSound(named: "Funk")?.play()
-            NSWorkspace.shared.open(url)
-            JoinTracker.shared.markJoined(meeting)
-            NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
+            fire(meeting: meeting, url: url)
         }
     }
 
     private func fire(meeting: Meeting, url: URL) {
         // Never join a meeting that already ended (possible after a long sleep).
-        // Being on another call is NOT a blocker: opening the link only lands in
-        // the meeting lobby — actually joining stays a conscious click by the user.
         guard meeting.endDate > Date() else { return }
 
+        // Only open the link if someone is at the Mac. Opening a Forum link puts
+        // the student in class (thumbnail visible) with no further click, so
+        // joining a locked/asleep/dark Mac makes them look present when they
+        // aren't. Hold it until they come back instead.
+        // Being on another call is NOT a blocker (for Zoom/Meet that only opens
+        // the lobby).
+        if let reason = PresenceMonitor.shared.awayReason {
+            PresenceMonitor.shared.log("holding join for \"\(meeting.title)\": \(reason)")
+            awayPending[meeting.id] = meeting
+            ensurePolling()
+            return
+        }
+
+        openNow(meeting: meeting, url: url)
+    }
+
+    private func openNow(meeting: Meeting, url: URL) {
+        PresenceMonitor.shared.log("opening \"\(meeting.title)\"")
         FloatingAlertManager.shared.dismiss(meetingId: meeting.id)
         NSSound(named: "Funk")?.play()
         NSWorkspace.shared.open(url)
         JoinTracker.shared.markJoined(meeting)
         NotificationCenter.default.post(name: .meetingAutoJoined, object: meeting.id)
+    }
+
+    // MARK: - Coming back
+
+    /// The user is back at the Mac. Within the first 15 min of class: 10s
+    /// countdown, then join (cancellable). Later: plain alert, click to join.
+    private func handleUserReturned() {
+        guard !awayPending.isEmpty else { return }
+        let pending = awayPending.values
+        awayPending.removeAll()
+        stopPollingIfIdle()
+
+        for meeting in pending {
+            guard meeting.endDate > Date(),
+                  meeting.joinURL != nil,
+                  !JoinTracker.shared.hasJoined(meeting),
+                  !isManuallyCancelled(meeting.id) else { continue }
+            let elapsed = Date().timeIntervalSince(meeting.startDate)
+            if elapsed <= Self.returnAutoJoinWindow {
+                PresenceMonitor.shared.log("back \(Int(elapsed / 60)) min into \"\(meeting.title)\": countdown")
+                countingDown.insert(meeting.id)
+                FloatingAlertManager.shared.presentCountdown(meeting: meeting)
+            } else {
+                PresenceMonitor.shared.log("back \(Int(elapsed / 60)) min into \"\(meeting.title)\": alert only")
+                FloatingAlertManager.shared.present(meeting: meeting)
+            }
+        }
+    }
+
+    /// Countdown on the return alert finished — join, unless the user is gone again.
+    func countdownFinished(_ meeting: Meeting) {
+        countingDown.remove(meeting.id)
+        guard let url = meeting.joinURL,
+              !JoinTracker.shared.hasJoined(meeting),
+              !isManuallyCancelled(meeting.id) else { return }
+        fire(meeting: meeting, url: url)
+    }
+
+    /// The countdown alert closed some other way (Join now clicked).
+    func countdownEnded(_ id: String) {
+        countingDown.remove(id)
     }
 }
